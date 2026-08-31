@@ -28,11 +28,14 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.UUID;
 
 public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static final String MOD_ID = "blackjackcalculator";
     private static final Identifier HUD_ID = Identifier.of(MOD_ID, "totals");
     private static final double SCAN_RADIUS = 64.0D;
+    private static final int SELECTION_HIGHLIGHT_TICKS = 100; // 5 seconds at 20 TPS
 
     private static KeyBinding toggleRoleKey;
     private static KeyBinding assignHostKey;
@@ -45,6 +48,11 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static int viewerTotal;
     private static boolean hostHasCards;
     private static boolean viewerHasCards;
+
+    // Client-only temporary glow state for recently selected frames.
+    private static final Map<UUID, HighlightState> selectionHighlights = new HashMap<>();
+
+    private record HighlightState(boolean wasGlowing, long expiresAtTick) {}
 
     @Override
     public void onInitializeClient() {
@@ -121,6 +129,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignViewerKey.wasPressed()) assignTargetRole(client, BlackjackConfig.Role.VIEWER);
         while (clearRoleKey.wasPressed()) clearTargetRole(client);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
+        updateSelectionHighlights(client);
         updateTotals(client);
     }
 
@@ -138,8 +147,9 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             return;
         }
         BlackjackConfig.setRole(frame, client.world.getRegistryKey(), role);
+        highlightSelectedFrame(frame, client.world.getTime());
         BlackjackConfig.save(client);
-        client.player.sendMessage(Text.literal("Item frame assigned to " + (role == BlackjackConfig.Role.HOST ? "Host" : "Viewer") + "."), true);
+        client.player.sendMessage(Text.literal("Item frame assigned to " + (role == BlackjackConfig.Role.HOST ? "Host" : "Viewer") + " for 5 seconds."), true);
     }
 
     private static void clearTargetRole(MinecraftClient client) {
@@ -149,8 +159,55 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             return;
         }
         BlackjackConfig.clearRole(frame, client.world.getRegistryKey());
+        removeHighlight(frame);
         BlackjackConfig.save(client);
         client.player.sendMessage(Text.literal("Blackjack frame role cleared."), true);
+    }
+
+    private static void highlightSelectedFrame(ItemFrameEntity frame, long currentTick) {
+        UUID id = frame.getUuid();
+        HighlightState existing = selectionHighlights.get(id);
+        if (existing == null) {
+            selectionHighlights.put(id, new HighlightState(frame.isGlowing(), currentTick + SELECTION_HIGHLIGHT_TICKS));
+        } else {
+            selectionHighlights.put(id, new HighlightState(existing.wasGlowing(), currentTick + SELECTION_HIGHLIGHT_TICKS));
+        }
+        frame.setGlowing(true);
+    }
+
+    private static void updateSelectionHighlights(MinecraftClient client) {
+        if (client.world == null) {
+            selectionHighlights.clear();
+            return;
+        }
+        long now = client.world.getTime();
+        var iterator = selectionHighlights.entrySet().iterator();
+        while (iterator.hasNext()) {
+            var entry = iterator.next();
+            ItemFrameEntity frame = findFrameByUuid(client, entry.getKey());
+            if (frame == null || frame.isRemoved()) {
+                iterator.remove();
+                continue;
+            }
+            if (now >= entry.getValue().expiresAtTick()) {
+                frame.setGlowing(entry.getValue().wasGlowing());
+                iterator.remove();
+            } else {
+                frame.setGlowing(true);
+            }
+        }
+    }
+
+    private static ItemFrameEntity findFrameByUuid(MinecraftClient client, UUID uuid) {
+        if (client.world == null) return null;
+        Box box = client.player == null ? new Box(-30000000, -2048, -30000000, 30000000, 2048, 30000000) : client.player.getBoundingBox().expand(SCAN_RADIUS + 16);
+        List<ItemFrameEntity> frames = client.world.getEntitiesByClass(ItemFrameEntity.class, box, frame -> frame.getUuid().equals(uuid));
+        return frames.isEmpty() ? null : frames.get(0);
+    }
+
+    private static void removeHighlight(ItemFrameEntity frame) {
+        HighlightState state = selectionHighlights.remove(frame.getUuid());
+        if (state != null) frame.setGlowing(state.wasGlowing());
     }
 
     private static void updateTotals(MinecraftClient client) {
