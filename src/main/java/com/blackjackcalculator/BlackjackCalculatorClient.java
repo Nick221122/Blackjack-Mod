@@ -62,7 +62,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         if (!(screen instanceof Generic3x3ContainerScreen) || !isOpenedDispenserOrDropper(client)) return;
         int left = (scaledWidth - 176) / 2;
         int top = (scaledHeight - 114) / 2;
-        Screens.getWidgets(screen).add(ButtonWidget.builder(Text.translatable("button.blackjackcalculator.scan"), button -> scanOpenContainer(client, screen))
+        Screens.getButtons(screen).add(ButtonWidget.builder(Text.translatable("button.blackjackcalculator.scan"), button -> scanOpenContainer(client, screen))
                 .dimensions(Math.max(4, left - 62), top + 20, 56, 20).build());
     }
 
