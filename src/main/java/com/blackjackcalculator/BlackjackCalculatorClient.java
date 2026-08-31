@@ -35,6 +35,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static final double SCAN_RADIUS = 64.0D;
 
     private static KeyBinding toggleRoleKey;
+    private static KeyBinding assignRoleKey;
     private static KeyBinding clearRoleKey;
     private static KeyBinding editHudKey;
     private static BlackjackConfig.Role activeScanRole = BlackjackConfig.Role.HOST;
@@ -46,11 +47,13 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        BlackjackConfig.load(MinecraftClient.getInstance());
+        MinecraftClient client = MinecraftClient.getInstance();
+        BlackjackConfig.load(client);
         activeScanRole = BlackjackConfig.getActiveRole();
 
         KeyBinding.Category category = KeyBinding.Category.create(Identifier.of(MOD_ID, "controls"));
         toggleRoleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.toggle_role", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_H, category));
+        assignRoleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_role", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_J, category));
         clearRoleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.clear_role", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, category));
         editHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.edit_hud", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_P, category));
 
@@ -68,7 +71,9 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     }
 
     private static boolean isDispenserOrDropperScreen(Screen screen) {
-        return screen instanceof Generic3x3ContainerScreen || screen.getTitle().getString().equalsIgnoreCase("Dispenser") || screen.getTitle().getString().equalsIgnoreCase("Dropper");
+        return screen instanceof Generic3x3ContainerScreen
+                || screen.getTitle().getString().equalsIgnoreCase("Dispenser")
+                || screen.getTitle().getString().equalsIgnoreCase("Dropper");
     }
 
     private static void scanOpenContainer(MinecraftClient client, Screen screen) {
@@ -110,6 +115,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     private static void onClientTick(MinecraftClient client) {
         while (toggleRoleKey.wasPressed()) toggleActiveScanRole(client);
+        while (assignRoleKey.wasPressed()) assignTargetRole(client);
         while (clearRoleKey.wasPressed()) clearTargetRole(client);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
         updateTotals(client);
@@ -120,6 +126,17 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         BlackjackConfig.setActiveRole(activeScanRole);
         BlackjackConfig.save(client);
         if (client.player != null) client.player.sendMessage(Text.literal("Active side: " + (activeScanRole == BlackjackConfig.Role.HOST ? "Host" : "Viewer") + "."), true);
+    }
+
+    private static void assignTargetRole(MinecraftClient client) {
+        if (client.player == null || client.world == null) return;
+        if (!(client.crosshairTarget instanceof EntityHitResult hit) || !(hit.getEntity() instanceof ItemFrameEntity frame)) {
+            client.player.sendMessage(Text.literal("Look directly at an item frame first."), true);
+            return;
+        }
+        BlackjackConfig.setRole(frame, client.world.getRegistryKey(), activeScanRole);
+        BlackjackConfig.save(client);
+        client.player.sendMessage(Text.literal("Item frame assigned to " + (activeScanRole == BlackjackConfig.Role.HOST ? "Host" : "Viewer") + "."), true);
     }
 
     private static void clearTargetRole(MinecraftClient client) {
@@ -182,7 +199,11 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         int x = host ? BlackjackConfig.getHostX() : BlackjackConfig.getViewerX();
         int y = host ? BlackjackConfig.getHostY() : BlackjackConfig.getViewerY();
         if (!host && x < 0) x = client.getWindow().getScaledWidth() - width - 8;
-        context.drawText(client.textRenderer, text, x, y, color, true);
+        context.getMatrices().pushMatrix();
+        context.getMatrices().translate(x, y);
+        context.getMatrices().scale(scale, scale);
+        context.drawText(client.textRenderer, text, 0, 0, color, true);
+        context.getMatrices().popMatrix();
     }
 
     public static int getHostTotal() { return hostTotal; }
