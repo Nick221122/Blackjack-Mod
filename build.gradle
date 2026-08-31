@@ -6,9 +6,7 @@ plugins {
 version = project.mod_version
 group = project.maven_group
 
-base {
-    archivesName = project.archives_base_name
-}
+base { archivesName = project.archives_base_name }
 
 repositories {
     maven { url = 'https://maven.fabricmc.net/' }
@@ -26,9 +24,7 @@ dependencies {
 
 processResources {
     inputs.property 'version', project.version
-    filesMatching('fabric.mod.json') {
-        expand 'version': project.version
-    }
+    filesMatching('fabric.mod.json') { expand 'version': project.version }
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -47,7 +43,11 @@ java {
 }
 
 jar {
-    from('LICENSE') {
-        rename { "${it}_${project.archives_base_name}" }
+    from('LICENSE') { rename { "${it}_${project.archives_base_name}" } }
+}
+
+publishing {
+    publications {
+        create('mavenJava', MavenPublication) { from components.java }
     }
 }
