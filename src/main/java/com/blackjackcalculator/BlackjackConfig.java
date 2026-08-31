@@ -24,9 +24,9 @@ public final class BlackjackConfig {
     private static final String FILE_NAME = "blackjackcalculator.json";
     private static int hostX = 8, hostY = 8, viewerX = -1, viewerY = 8;
     private static float hostScale = 1.0f, viewerScale = 1.0f;
+    private static String hostName = "Host", viewerName = "Viewer";
     private static final Map<String, Role> FRAME_ROLES = new HashMap<>();
     private static final Map<String, Integer> SHARED_SCANNED_MAPS = new LinkedHashMap<>();
-    private static Role activeRole = Role.HOST;
     private static String hostFirstFrame, hostSecondFrame, viewerFirstFrame, viewerSecondFrame;
     private static boolean loaded;
 
@@ -45,9 +45,8 @@ public final class BlackjackConfig {
             viewerY = root.has("viewerY") ? root.get("viewerY").getAsInt() : viewerY;
             hostScale = root.has("hostScale") ? root.get("hostScale").getAsFloat() : hostScale;
             viewerScale = root.has("viewerScale") ? root.get("viewerScale").getAsFloat() : viewerScale;
-            if (root.has("activeRole")) {
-                try { activeRole = Role.valueOf(root.get("activeRole").getAsString()); } catch (IllegalArgumentException ignored) {}
-            }
+            hostName = root.has("hostName") ? root.get("hostName").getAsString() : hostName;
+            viewerName = root.has("viewerName") ? root.get("viewerName").getAsString() : viewerName;
             hostFirstFrame = getString(root, "hostFirstFrame");
             hostSecondFrame = getString(root, "hostSecondFrame");
             viewerFirstFrame = getString(root, "viewerFirstFrame");
@@ -60,7 +59,6 @@ public final class BlackjackConfig {
             if (root.has("sharedScannedMaps") && root.get("sharedScannedMaps").isJsonObject()) {
                 loadMap(root, "sharedScannedMaps", SHARED_SCANNED_MAPS);
             } else {
-                // Backward compatibility with older builds that stored separate scans.
                 loadMap(root, "hostScannedItems", SHARED_SCANNED_MAPS);
                 if (SHARED_SCANNED_MAPS.isEmpty()) loadMap(root, "viewerScannedItems", SHARED_SCANNED_MAPS);
             }
@@ -87,7 +85,8 @@ public final class BlackjackConfig {
         root.addProperty("viewerY", viewerY);
         root.addProperty("hostScale", hostScale);
         root.addProperty("viewerScale", viewerScale);
-        root.addProperty("activeRole", activeRole.name());
+        root.addProperty("hostName", hostName);
+        root.addProperty("viewerName", viewerName);
         if (hostFirstFrame != null) root.addProperty("hostFirstFrame", hostFirstFrame);
         if (hostSecondFrame != null) root.addProperty("hostSecondFrame", hostSecondFrame);
         if (viewerFirstFrame != null) root.addProperty("viewerFirstFrame", viewerFirstFrame);
@@ -105,53 +104,24 @@ public final class BlackjackConfig {
         return dimension.getValue() + ":" + frame.getUuid();
     }
 
-    public static Role getRole(ItemFrameEntity frame, RegistryKey<World> dimension) {
-        return FRAME_ROLES.get(frameKey(frame, dimension));
-    }
+    public static Role getRole(ItemFrameEntity frame, RegistryKey<World> dimension) { return FRAME_ROLES.get(frameKey(frame, dimension)); }
+    public static void setRole(ItemFrameEntity frame, RegistryKey<World> dimension, Role role) { FRAME_ROLES.put(frameKey(frame, dimension), role); }
+    public static void clearRole(ItemFrameEntity frame, RegistryKey<World> dimension) { FRAME_ROLES.remove(frameKey(frame, dimension)); }
 
-    public static void setRole(ItemFrameEntity frame, RegistryKey<World> dimension, Role role) {
-        FRAME_ROLES.put(frameKey(frame, dimension), role);
-    }
+    public static void setFirstSelection(Role role, String key) { if (role == Role.HOST) hostFirstFrame = key; else viewerFirstFrame = key; }
+    public static void setSecondSelection(Role role, String key) { if (role == Role.HOST) hostSecondFrame = key; else viewerSecondFrame = key; }
+    public static FrameSelection getSelection(Role role) { return role == Role.HOST ? new FrameSelection(hostFirstFrame, hostSecondFrame) : new FrameSelection(viewerFirstFrame, viewerSecondFrame); }
+    public static void clearSelection(Role role) { if (role == Role.HOST) { hostFirstFrame = null; hostSecondFrame = null; } else { viewerFirstFrame = null; viewerSecondFrame = null; } }
 
-    public static void clearRole(ItemFrameEntity frame, RegistryKey<World> dimension) {
-        FRAME_ROLES.remove(frameKey(frame, dimension));
-    }
-
-    public static void setFirstSelection(Role role, String key) {
-        if (role == Role.HOST) hostFirstFrame = key; else viewerFirstFrame = key;
-    }
-
-    public static void setSecondSelection(Role role, String key) {
-        if (role == Role.HOST) hostSecondFrame = key; else viewerSecondFrame = key;
-    }
-
-    public static FrameSelection getSelection(Role role) {
-        return role == Role.HOST ? new FrameSelection(hostFirstFrame, hostSecondFrame) : new FrameSelection(viewerFirstFrame, viewerSecondFrame);
-    }
-
-    public static void clearSelection(Role role) {
-        if (role == Role.HOST) { hostFirstFrame = null; hostSecondFrame = null; }
-        else { viewerFirstFrame = null; viewerSecondFrame = null; }
-    }
-
-    public static int getScannedMapValue(String mapId) {
-        Integer value = SHARED_SCANNED_MAPS.get(mapId);
-        return value == null ? -1 : value;
-    }
-
-    public static void replaceSharedScan(Map<String, Integer> values) {
-        SHARED_SCANNED_MAPS.clear();
-        SHARED_SCANNED_MAPS.putAll(values);
-    }
-
+    public static int getScannedMapValue(String mapId) { Integer value = SHARED_SCANNED_MAPS.get(mapId); return value == null ? -1 : value; }
+    public static void replaceSharedScan(Map<String, Integer> values) { SHARED_SCANNED_MAPS.clear(); SHARED_SCANNED_MAPS.putAll(values); }
     public static int getSharedScanCount() { return SHARED_SCANNED_MAPS.size(); }
+    public static String containerKey(RegistryKey<World> dimension, BlockPos pos) { return dimension.getValue() + ":" + pos.toShortString(); }
 
-    public static String containerKey(RegistryKey<World> dimension, BlockPos pos) {
-        return dimension.getValue() + ":" + pos.toShortString();
-    }
-
-    public static Role getActiveRole() { return activeRole; }
-    public static void setActiveRole(Role role) { activeRole = role; }
+    public static String getHostName() { return hostName; }
+    public static String getViewerName() { return viewerName; }
+    public static void setHostName(String name) { hostName = name == null ? "" : name; }
+    public static void setViewerName(String name) { viewerName = name == null ? "" : name; }
     public static float getHostScale() { return hostScale; }
     public static float getViewerScale() { return viewerScale; }
     public static void setHostScale(float scale) { hostScale = Math.max(0.5f, Math.min(2.0f, scale)); }
