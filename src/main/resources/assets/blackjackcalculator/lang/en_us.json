@@ -2,7 +2,6 @@
   "key.category.blackjackcalculator.controls": "Blackjack Calculator",
   "key.blackjackcalculator.assign_host": "Select Item Frame as Host",
   "key.blackjackcalculator.assign_viewer": "Select Item Frame as Viewer",
-  "key.blackjackcalculator.clear_role": "Clear Target Frame Role",
   "key.blackjackcalculator.edit_hud": "Edit HUD Positions",
   "button.blackjackcalculator.scan": "Scan"
 }
