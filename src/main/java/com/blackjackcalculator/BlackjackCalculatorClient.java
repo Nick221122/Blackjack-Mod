@@ -16,10 +16,10 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.Registries;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.text.Text;
@@ -85,11 +85,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
                 || screen.getTitle().getString().equalsIgnoreCase("Dropper");
     }
 
-    /**
-     * Scans the currently opened 3x3 Dispenser/Dropper into one shared mapping.
-     * Slot order is exactly the visual order: 0..8 = left-to-right, top-to-bottom.
-     * Values are 11/1 (Ace), 3,4,5,6,7,8,9,10.
-     */
+    /** Shared scan: map unique ID -> Blackjack value, using slot order 1/11,3,4,5,6,7,8,9,10. */
     private static void scanOpenContainer(MinecraftClient client, Screen screen) {
         if (client.player == null || client.world == null) return;
         if (!(screen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?> handled)) return;
@@ -113,18 +109,15 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             scanned.put(mapId, SCAN_VALUES[slot]);
             occupied++;
         }
-
         BlackjackConfig.replaceSharedScan(scanned);
         BlackjackConfig.save(client);
         client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s). The scan is shared by Host and Viewer until the next scan."), true);
     }
 
-    /** Returns a stable signature based on Minecraft's unique MAP_ID component. */
     private static String mapIdSignature(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return null;
         var mapId = stack.get(DataComponentTypes.MAP_ID);
-        if (mapId == null) return null;
-        return mapId.toString();
+        return mapId == null ? null : mapId.toString();
     }
 
     private static void onClientTick(MinecraftClient client) {
@@ -154,7 +147,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
         String current = frame.getUuidAsString();
         if (selection.firstKey() == null || selection.secondKey() != null) {
-            // Start a new rectangle immediately; there is never a five-second lockout.
             BlackjackConfig.setFirstSelection(role, current);
             BlackjackConfig.setSecondSelection(role, null);
             highlightSelectedFrame(frame, client.world.getTime());
@@ -164,7 +156,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             BlackjackConfig.setSecondSelection(role, current);
             highlightSelectedFrame(frame, client.world.getTime());
             BlackjackConfig.save(client);
-            client.player.sendMessage(Text.literal(roleName(role) + ": second corner selected. The rectangle is now saved until you select a new one."), true);
+            client.player.sendMessage(Text.literal(roleName(role) + ": second corner selected. The rectangle is saved until you select a new one."), true);
         }
     }
 
@@ -202,8 +194,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     }
 
     private static ItemFrameEntity findFrameByUuid(MinecraftClient client, UUID uuid) {
-        if (client.world == null) return null;
-        var entity = client.world.getEntity(uuid);
+        if (client.world == null || uuid == null) return null;
+        Entity entity = client.world.getEntity(uuid);
         return entity instanceof ItemFrameEntity frame ? frame : null;
     }
 
@@ -220,9 +212,15 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         boolean foundHost = false, foundViewer = false;
 
         for (ItemFrameEntity frame : frames) {
-            BlackjackConfig.Role role = roleForFrame(client.world.getRegistryKey(), frame);
+            BlackjackConfig.Role explicitRole = BlackjackConfig.getRole(frame, client.world.getRegistryKey());
+            boolean inHost = isFrameInsideSelection(client, frame, BlackjackConfig.Role.HOST);
+            boolean inViewer = isFrameInsideSelection(client, frame, BlackjackConfig.Role.VIEWER);
+            BlackjackConfig.Role role = explicitRole;
+            if (role == null) {
+                if (inHost && !inViewer) role = BlackjackConfig.Role.HOST;
+                else if (inViewer && !inHost) role = BlackjackConfig.Role.VIEWER;
+            }
             if (role == null) continue;
-            if (!isFrameInsideSelection(client, frame, role)) continue;
 
             String mapId = mapIdSignature(frame.getHeldItemStack());
             if (mapId == null) continue;
@@ -244,12 +242,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         viewerTotal = BlackjackScore.score(viewerFixed, viewerAces);
     }
 
-    private static BlackjackConfig.Role roleForFrame(RegistryKey<World> dimension, ItemFrameEntity frame) {
-        // Explicit single-frame assignments from older versions remain supported.
-        return BlackjackConfig.getRole(frame, dimension);
-    }
-
-    /** A saved Host/Viewer rectangle is defined by two corner frame UUIDs. */
     private static boolean isFrameInsideSelection(MinecraftClient client, ItemFrameEntity frame, BlackjackConfig.Role role) {
         BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
         if (selection.firstKey() == null || selection.secondKey() == null) return false;
@@ -266,7 +258,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     }
 
     private static UUID parseUuid(String value) {
-        try { return UUID.fromString(value); } catch (IllegalArgumentException e) { return new UUID(0L, 0L); }
+        try { return UUID.fromString(value); } catch (Exception e) { return null; }
     }
 
     private static boolean between(int value, int a, int b) {
