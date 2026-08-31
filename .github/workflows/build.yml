@@ -15,10 +15,12 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
+      - name: Set up Gradle 9.2
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.2'
       - name: Build mod
-        run: ./gradlew build --no-daemon
+        run: gradle clean build --no-daemon --stacktrace
       - name: Verify production JAR
         run: test -f build/libs/blackjack-calculator-1.21.11.jar
       - name: Upload mod JAR
