@@ -8,7 +8,7 @@ import net.minecraft.text.Text;
 
 import java.util.Map;
 
-/** Small client-only paper/card scan screen for reviewing the two independent assignments. */
+/** Small client-only scan review screen for the two independent assignments. */
 public final class BlackjackScanScreen extends Screen {
     public BlackjackScanScreen() { super(Text.translatable("screen.blackjackcalculator.scan")); }
 
@@ -18,10 +18,8 @@ public final class BlackjackScanScreen extends Screen {
         int cx = width / 2;
         addDrawableChild(ButtonWidget.builder(Text.translatable("button.blackjackcalculator.switch"), button -> {
             MinecraftClient client = MinecraftClient.getInstance();
-            BlackjackConfig.Role next = BlackjackCalculatorClient.getActiveRole() == BlackjackConfig.Role.HOST
-                    ? BlackjackConfig.Role.VIEWER : BlackjackConfig.Role.HOST;
-            BlackjackConfig.setActiveRole(next);
-            BlackjackConfig.save(client);
+            BlackjackConfig.Role next = BlackjackCalculatorClient.getActiveRole() == BlackjackConfig.Role.HOST ? BlackjackConfig.Role.VIEWER : BlackjackConfig.Role.HOST;
+            BlackjackCalculatorClient.setActiveRole(next, client);
         }).dimensions(cx - 55, height - 55, 110, 20).build());
     }
 
@@ -32,14 +30,14 @@ public final class BlackjackScanScreen extends Screen {
         MinecraftClient client = MinecraftClient.getInstance();
         int cx = width / 2;
         context.drawCenteredTextWithShadow(textRenderer, title, cx, 20, 0xFFFFFFFF);
-        drawRole(context, "Host", BlackjackConfig.Role.HOST, cx - 110, 55, client);
-        drawRole(context, "Viewer", BlackjackConfig.Role.VIEWER, cx + 20, 55, client);
+        drawRole(context, BlackjackConfig.getHostName(), BlackjackConfig.Role.HOST, cx - 110, 55);
+        drawRole(context, BlackjackConfig.getViewerName(), BlackjackConfig.Role.VIEWER, cx + 20, 55);
         context.drawCenteredTextWithShadow(textRenderer,
-                Text.translatable("screen.blackjackcalculator.active", BlackjackCalculatorClient.getActiveRole() == BlackjackConfig.Role.HOST ? "Host" : "Viewer"),
+                Text.translatable("screen.blackjackcalculator.active", BlackjackCalculatorClient.getActiveRole() == BlackjackConfig.Role.HOST ? BlackjackConfig.getHostName() : BlackjackConfig.getViewerName()),
                 cx, height - 80, 0xFFAAAAAA);
     }
 
-    private void drawRole(DrawContext context, String label, BlackjackConfig.Role role, int x, int y, MinecraftClient client) {
+    private void drawRole(DrawContext context, String label, BlackjackConfig.Role role, int x, int y) {
         context.drawTextWithShadow(textRenderer, label, x, y, 0xFFFFFFFF);
         String container = BlackjackConfig.getActiveContainer(role);
         context.drawTextWithShadow(textRenderer,
