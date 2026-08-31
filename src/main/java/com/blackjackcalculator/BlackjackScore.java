@@ -1,11 +1,11 @@
 package com.blackjackcalculator;
 
-/** Pure blackjack scoring logic. An Ace starts as 11 and becomes 1 when needed. */
+/** Pure blackjack scoring. Every Ace starts at 11 and is reduced by 10 only when needed. */
 public final class BlackjackScore {
     private BlackjackScore() {}
 
     public static int score(int fixedTotal, int aces) {
-        int total = fixedTotal + (aces * 11);
+        int total = fixedTotal + aces * 11;
         while (total > 21 && aces > 0) {
             total -= 10;
             aces--;
@@ -15,8 +15,8 @@ public final class BlackjackScore {
 
     public static String display(int total, boolean hasCards) {
         if (!hasCards) return "-";
-        if (total > 21) return "BUST";
-        if (total == 21) return "BLACKJACK!";
+        if (total > 21) return "Bust";
+        if (total == 21) return "Blackjack";
         return Integer.toString(total);
     }
 }
