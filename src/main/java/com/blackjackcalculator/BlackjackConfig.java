@@ -80,9 +80,15 @@ public final class BlackjackConfig {
         Map<String,Integer> copy = new LinkedHashMap<>(values);
         CONTAINER_SCANS.put(containerKey + "|" + role.name(), copy);
         Map<String,Integer> target = role == Role.HOST ? HOST_SCANNED_ITEMS : VIEWER_SCANNED_ITEMS;
-        target.clear(); target.putAll(copy);
+        target.clear();
+        target.putAll(copy);
     }
-    public static int getScannedValue(Role role, String signature) { Integer value = (role == Role.HOST ? HOST_SCANNED_ITEMS : VIEWER_SCANNED_ITEMS).get(signature); return value == null ? -1 : value; }
+
+    public static int getScannedValue(Role role, String signature) {
+        Integer value = (role == Role.HOST ? HOST_SCANNED_ITEMS : VIEWER_SCANNED_ITEMS).get(signature);
+        return value == null ? -1 : value;
+    }
+
     public static String containerKey(RegistryKey<World> dimension, BlockPos pos) { return dimension.getValue() + ":" + pos.toShortString(); }
     public static Role getActiveRole() { return activeRole; }
     public static void setActiveRole(Role role) { activeRole = role; }
