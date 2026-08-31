@@ -145,8 +145,10 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     private static void clearSelection(MinecraftClient client) {
         if (client.player == null) return;
-        BlackjackConfig.clearSelection(BlackjackConfig.getSelectionRoleForClear());
+        BlackjackConfig.clearSelection(BlackjackConfig.Role.HOST);
+        BlackjackConfig.clearSelection(BlackjackConfig.Role.VIEWER);
         BlackjackConfig.save(client);
+        client.player.sendMessage(Text.literal("Host and Viewer selections cleared."), true);
     }
 
     private static String roleName(BlackjackConfig.Role role) { return role == BlackjackConfig.Role.HOST ? "Host" : "Viewer"; }
