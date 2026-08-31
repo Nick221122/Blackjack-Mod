@@ -41,7 +41,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     private static KeyBinding assignHostKey;
     private static KeyBinding assignViewerKey;
-    private static KeyBinding clearRoleKey;
     private static KeyBinding editHudKey;
 
     private static int hostTotal;
@@ -58,7 +57,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         KeyBinding.Category category = KeyBinding.Category.create(Identifier.of(MOD_ID, "controls"));
         assignHostKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_host", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_J, category));
         assignViewerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_viewer", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_U, category));
-        clearRoleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.clear_role", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, category));
         editHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.edit_hud", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_P, category));
         ClientTickEvents.END_CLIENT_TICK.register(BlackjackCalculatorClient::onClientTick);
         HudElementRegistry.addLast(HUD_ID, BlackjackCalculatorClient::renderHud);
@@ -86,7 +84,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             client.player.sendMessage(Text.literal("This is not a Dispenser or Dropper."), true);
             return;
         }
-        if (!(client.crosshairTarget instanceof BlockHitResult hit)) {
+        if (!(client.crosshairTarget instanceof BlockHitResult)) {
             client.player.sendMessage(Text.literal("Look at the Dispenser or Dropper while scanning."), true);
             return;
         }
@@ -115,7 +113,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void onClientTick(MinecraftClient client) {
         while (assignHostKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.HOST);
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
-        while (clearRoleKey.wasPressed()) clearSelection(client);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
         updateSelectionHighlights(client);
         updateTotals(client);
@@ -141,14 +138,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             BlackjackConfig.save(client);
             client.player.sendMessage(Text.literal(roleName(role) + ": area saved until you select new corners."), true);
         }
-    }
-
-    private static void clearSelection(MinecraftClient client) {
-        if (client.player == null) return;
-        BlackjackConfig.clearSelection(BlackjackConfig.Role.HOST);
-        BlackjackConfig.clearSelection(BlackjackConfig.Role.VIEWER);
-        BlackjackConfig.save(client);
-        client.player.sendMessage(Text.literal("Host and Viewer selections cleared."), true);
     }
 
     private static String roleName(BlackjackConfig.Role role) { return role == BlackjackConfig.Role.HOST ? "Host" : "Viewer"; }
@@ -221,11 +210,15 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null || client.options.hudHidden) return;
-        drawTotal(context, client, "Host " + BlackjackScore.display(hostTotal, hostHasCards), true);
-        drawTotal(context, client, BlackjackScore.display(viewerTotal, viewerHasCards) + " Viewer", false);
+        drawTotal(context, client, BlackjackConfig.getHostName(), BlackjackScore.display(hostTotal, hostHasCards), true);
+        drawTotal(context, client, BlackjackConfig.getViewerName(), BlackjackScore.display(viewerTotal, viewerHasCards), false);
     }
 
-    private static void drawTotal(DrawContext context, MinecraftClient client, String text, boolean host) {
+    private static void drawTotal(DrawContext context, MinecraftClient client, String name, String score, boolean host) {
+        String text;
+        if (name.isBlank()) text = score;
+        else if (host) text = name + " " + score;
+        else text = score + " " + name;
         int color = text.contains("BUST") ? 0xFFFF5555 : 0xFFFFFFFF;
         float scale = host ? BlackjackConfig.getHostScale() : BlackjackConfig.getViewerScale();
         int width = Math.round(client.textRenderer.getWidth(text) * scale);
