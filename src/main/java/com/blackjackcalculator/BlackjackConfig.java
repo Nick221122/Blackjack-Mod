@@ -8,25 +8,26 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.world.World;
+import net.minecraft.util.math.BlockPos;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Client-only persistent settings and frame role assignments. */
 public final class BlackjackConfig {
     public enum Role { HOST, VIEWER }
-
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILE_NAME = "blackjackcalculator.json";
-
-    private static int hostX = 8;
-    private static int hostY = 8;
-    private static int viewerX = -1;
-    private static int viewerY = 8;
+    private static int hostX = 8, hostY = 8, viewerX = -1, viewerY = 8;
+    private static float hostScale = 1.0f, viewerScale = 1.0f;
     private static final Map<String, Role> FRAME_ROLES = new HashMap<>();
+    private static final Map<String, Integer> HOST_SCANNED_ITEMS = new LinkedHashMap<>();
+    private static final Map<String, Integer> VIEWER_SCANNED_ITEMS = new LinkedHashMap<>();
+    private static final Map<String, Map<String, Integer>> CONTAINER_SCANS = new HashMap<>();
+    private static Role activeRole = Role.HOST;
     private static boolean loaded;
 
     private BlackjackConfig() {}
@@ -42,74 +43,58 @@ public final class BlackjackConfig {
             hostY = root.has("hostY") ? root.get("hostY").getAsInt() : hostY;
             viewerX = root.has("viewerX") ? root.get("viewerX").getAsInt() : viewerX;
             viewerY = root.has("viewerY") ? root.get("viewerY").getAsInt() : viewerY;
-            if (root.has("frameRoles") && root.get("frameRoles").isJsonObject()) {
-                for (var entry : root.getAsJsonObject("frameRoles").entrySet()) {
-                    String value = entry.getValue().getAsString();
-                    try {
-                        FRAME_ROLES.put(entry.getKey(), Role.valueOf(value));
-                    } catch (IllegalArgumentException ignored) {
-                        // Ignore unknown roles from an older/newer config.
-                    }
-                }
+            hostScale = root.has("hostScale") ? root.get("hostScale").getAsFloat() : hostScale;
+            viewerScale = root.has("viewerScale") ? root.get("viewerScale").getAsFloat() : viewerScale;
+            if (root.has("activeRole")) try { activeRole = Role.valueOf(root.get("activeRole").getAsString()); } catch (IllegalArgumentException ignored) {}
+            if (root.has("hostScannedItems") && root.get("hostScannedItems").isJsonObject()) root.getAsJsonObject("hostScannedItems").entrySet().forEach(e -> { try { HOST_SCANNED_ITEMS.put(e.getKey(), e.getValue().getAsInt()); } catch (Exception ignored) {} });
+            if (root.has("viewerScannedItems") && root.get("viewerScannedItems").isJsonObject()) root.getAsJsonObject("viewerScannedItems").entrySet().forEach(e -> { try { VIEWER_SCANNED_ITEMS.put(e.getKey(), e.getValue().getAsInt()); } catch (Exception ignored) {} });
+            if (root.has("containerScans") && root.get("containerScans").isJsonObject()) for (var ce : root.getAsJsonObject("containerScans").entrySet()) {
+                Map<String,Integer> values = new LinkedHashMap<>();
+                if (ce.getValue().isJsonObject()) for (var e : ce.getValue().getAsJsonObject().entrySet()) try { values.put(e.getKey(), e.getValue().getAsInt()); } catch (Exception ignored) {}
+                CONTAINER_SCANS.put(ce.getKey(), values);
             }
-        } catch (Exception ignored) {
-            // A broken client config should never crash Minecraft.
-        }
+            if (root.has("frameRoles") && root.get("frameRoles").isJsonObject()) for (var entry : root.getAsJsonObject("frameRoles").entrySet()) try { FRAME_ROLES.put(entry.getKey(), Role.valueOf(entry.getValue().getAsString())); } catch (IllegalArgumentException ignored) {}
+        } catch (Exception ignored) {}
     }
 
     public static void save(MinecraftClient client) {
         if (client == null) return;
-        Path path = client.runDirectory.toPath().resolve(FILE_NAME);
         JsonObject root = new JsonObject();
-        root.addProperty("hostX", hostX);
-        root.addProperty("hostY", hostY);
-        root.addProperty("viewerX", viewerX);
-        root.addProperty("viewerY", viewerY);
-        JsonObject roles = new JsonObject();
-        FRAME_ROLES.forEach((key, role) -> roles.addProperty(key, role.name()));
-        root.add("frameRoles", roles);
-        try {
-            Files.writeString(path, GSON.toJson(root));
-        } catch (IOException ignored) {
-            // Config saving failure should never crash the game.
-        }
+        root.addProperty("hostX", hostX); root.addProperty("hostY", hostY);
+        root.addProperty("viewerX", viewerX); root.addProperty("viewerY", viewerY);
+        root.addProperty("hostScale", hostScale); root.addProperty("viewerScale", viewerScale);
+        root.addProperty("activeRole", activeRole.name());
+        JsonObject roles = new JsonObject(); FRAME_ROLES.forEach((k,v) -> roles.addProperty(k,v.name())); root.add("frameRoles", roles);
+        JsonObject host = new JsonObject(); HOST_SCANNED_ITEMS.forEach(host::addProperty); root.add("hostScannedItems", host);
+        JsonObject viewer = new JsonObject(); VIEWER_SCANNED_ITEMS.forEach(viewer::addProperty); root.add("viewerScannedItems", viewer);
+        JsonObject containers = new JsonObject(); CONTAINER_SCANS.forEach((k,v) -> { JsonObject o = new JsonObject(); v.forEach(o::addProperty); containers.add(k,o); }); root.add("containerScans", containers);
+        try { Files.writeString(client.runDirectory.toPath().resolve(FILE_NAME), GSON.toJson(root)); } catch (IOException ignored) {}
     }
 
-    public static Role getRole(ItemFrameEntity frame, RegistryKey<World> dimension) {
-        return FRAME_ROLES.get(roleKey(frame, dimension));
-    }
+    public static Role getRole(ItemFrameEntity frame, RegistryKey<World> dimension) { return FRAME_ROLES.get(roleKey(frame, dimension)); }
+    public static void setRole(ItemFrameEntity frame, RegistryKey<World> dimension, Role role) { FRAME_ROLES.put(roleKey(frame, dimension), role); }
+    public static void clearRole(ItemFrameEntity frame, RegistryKey<World> dimension) { FRAME_ROLES.remove(roleKey(frame, dimension)); }
+    private static String roleKey(ItemFrameEntity frame, RegistryKey<World> dimension) { return dimension.getValue() + ":" + frame.getUuid(); }
 
-    public static void setRole(ItemFrameEntity frame, RegistryKey<World> dimension, Role role) {
-        FRAME_ROLES.put(roleKey(frame, dimension), role);
+    public static void saveContainerScan(String containerKey, Role role, Map<String,Integer> values) {
+        Map<String,Integer> copy = new LinkedHashMap<>(values);
+        CONTAINER_SCANS.put(containerKey + "|" + role.name(), copy);
+        Map<String,Integer> target = role == Role.HOST ? HOST_SCANNED_ITEMS : VIEWER_SCANNED_ITEMS;
+        target.clear(); target.putAll(copy);
     }
-
-    public static void clearRole(ItemFrameEntity frame, RegistryKey<World> dimension) {
-        FRAME_ROLES.remove(roleKey(frame, dimension));
-    }
-
-    private static String roleKey(ItemFrameEntity frame, RegistryKey<World> dimension) {
-        return dimension.getValue() + ":" + frame.getUuid();
-    }
-
+    public static int getScannedValue(Role role, String signature) { Integer value = (role == Role.HOST ? HOST_SCANNED_ITEMS : VIEWER_SCANNED_ITEMS).get(signature); return value == null ? -1 : value; }
+    public static String containerKey(RegistryKey<World> dimension, BlockPos pos) { return dimension.getValue() + ":" + pos.toShortString(); }
+    public static Role getActiveRole() { return activeRole; }
+    public static void setActiveRole(Role role) { activeRole = role; }
+    public static float getHostScale() { return hostScale; }
+    public static float getViewerScale() { return viewerScale; }
+    public static void setHostScale(float scale) { hostScale = Math.max(0.5f, Math.min(2.0f, scale)); }
+    public static void setViewerScale(float scale) { viewerScale = Math.max(0.5f, Math.min(2.0f, scale)); }
     public static int getHostX() { return hostX; }
     public static int getHostY() { return hostY; }
     public static int getViewerX() { return viewerX; }
     public static int getViewerY() { return viewerY; }
-
-    public static void setHostPosition(int x, int y) {
-        hostX = x;
-        hostY = y;
-    }
-
-    public static void setViewerPosition(int x, int y) {
-        viewerX = x;
-        viewerY = y;
-    }
-
-    public static void resetPositions() {
-        hostX = 8;
-        hostY = 8;
-        viewerX = -1;
-        viewerY = 8;
-    }
+    public static void setHostPosition(int x,int y) { hostX=x; hostY=y; }
+    public static void setViewerPosition(int x,int y) { viewerX=x; viewerY=y; }
+    public static void resetPositions() { hostX=8; hostY=8; viewerX=-1; viewerY=8; hostScale=1.0f; viewerScale=1.0f; }
 }
