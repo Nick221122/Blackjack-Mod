@@ -3,21 +3,17 @@
   "id": "blackjackcalculator",
   "version": "${version}",
   "name": "Blackjack Item Frame Calculator",
-  "description": "Client-side blackjack calculator that reads numbered cards from nearby item frames.",
-  "authors": [
-    "OpenAI"
-  ],
+  "description": "Client-side blackjack calculator with Host/Viewer roles and Dispenser/Dropper scanning.",
+  "authors": ["Nick221122"],
   "license": "MIT",
   "environment": "client",
   "entrypoints": {
-    "client": [
-      "com.blackjackcalculator.BlackjackCalculatorClient"
-    ]
+    "client": ["com.blackjackcalculator.BlackjackCalculatorClient"]
   },
   "depends": {
     "fabricloader": ">=0.19.2",
     "minecraft": "1.21.11",
     "java": ">=21",
-    "fabric-api": "0.141.6+1.21.11"
+    "fabric-api": ">=0.141.6+1.21.11"
   }
 }
