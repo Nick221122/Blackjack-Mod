@@ -15,8 +15,10 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.hit.BlockHitResult;
@@ -24,11 +26,12 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Box;
+import net.minecraft.world.World;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.UUID;
 
 public final class BlackjackCalculatorClient implements ClientModInitializer {
@@ -36,13 +39,14 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static final Identifier HUD_ID = Identifier.of(MOD_ID, "totals");
     private static final double SCAN_RADIUS = 64.0D;
     private static final int SELECTION_HIGHLIGHT_TICKS = 100;
+    private static final int[] SCAN_VALUES = {11, 3, 4, 5, 6, 7, 8, 9, 10};
 
     private static KeyBinding toggleRoleKey;
     private static KeyBinding assignHostKey;
     private static KeyBinding assignViewerKey;
     private static KeyBinding clearRoleKey;
     private static KeyBinding editHudKey;
-    private static BlackjackConfig.Role activeScanRole = BlackjackConfig.Role.HOST;
+    private static BlackjackConfig.Role activeRole = BlackjackConfig.Role.HOST;
 
     private static int hostTotal;
     private static int viewerTotal;
@@ -55,7 +59,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     public void onInitializeClient() {
         MinecraftClient client = MinecraftClient.getInstance();
         BlackjackConfig.load(client);
-        activeScanRole = BlackjackConfig.getActiveRole();
+        activeRole = BlackjackConfig.getActiveRole();
         KeyBinding.Category category = KeyBinding.Category.create(Identifier.of(MOD_ID, "controls"));
         toggleRoleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.toggle_role", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_H, category));
         assignHostKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_host", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_J, category));
@@ -81,6 +85,11 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
                 || screen.getTitle().getString().equalsIgnoreCase("Dropper");
     }
 
+    /**
+     * Scans the currently opened 3x3 Dispenser/Dropper into one shared mapping.
+     * Slot order is exactly the visual order: 0..8 = left-to-right, top-to-bottom.
+     * Values are 11/1 (Ace), 3,4,5,6,7,8,9,10.
+     */
     private static void scanOpenContainer(MinecraftClient client, Screen screen) {
         if (client.player == null || client.world == null) return;
         if (!(screen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?> handled)) return;
@@ -94,72 +103,80 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             return;
         }
 
-        // Scan is a snapshot for the currently active side. The snapshot remains in
-        // the config and is replaced only by another scan for that side.
         Map<String, Integer> scanned = new java.util.LinkedHashMap<>();
         int occupied = 0;
         for (int slot = 0; slot < 9; slot++) {
             ItemStack stack = handler.getSlot(slot).getStack();
             if (stack.isEmpty()) continue;
-            String name = stack.getCustomName() == null ? "" : stack.getCustomName().getString().trim();
-            if (!(name.matches("[1-9]") || name.equals("10"))) continue;
-            int value = Integer.parseInt(name);
-            // The scan reads slots in visual order: top-left to right, then the next row.
-            // The card's registered signature is what will be recognized in item frames.
-            scanned.put(itemSignature(stack), value);
+            String mapId = mapIdSignature(stack);
+            if (mapId == null) continue;
+            scanned.put(mapId, SCAN_VALUES[slot]);
             occupied++;
         }
-        String key = BlackjackConfig.containerKey(client.world.getRegistryKey(), pos);
-        BlackjackConfig.saveContainerScan(key, activeScanRole, scanned);
+
+        BlackjackConfig.replaceSharedScan(scanned);
         BlackjackConfig.save(client);
-        client.player.sendMessage(Text.literal("Scanned " + occupied + " card(s) for " + (activeScanRole == BlackjackConfig.Role.HOST ? "Host" : "Viewer") + ". Matching cards placed in that side's assigned frames will now be counted automatically."), true);
+        client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s). The scan is shared by Host and Viewer until the next scan."), true);
     }
 
-    private static String itemSignature(ItemStack stack) {
-        String itemId = Registries.ITEM.getId(stack.getItem()).toString();
-        String name = stack.getCustomName() == null ? "" : stack.getCustomName().getString().trim();
-        return itemId + "|" + name;
+    /** Returns a stable signature based on Minecraft's unique MAP_ID component. */
+    private static String mapIdSignature(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return null;
+        var mapId = stack.get(DataComponentTypes.MAP_ID);
+        if (mapId == null) return null;
+        return mapId.toString();
     }
 
     private static void onClientTick(MinecraftClient client) {
-        while (toggleRoleKey.wasPressed()) toggleActiveScanRole(client);
-        while (assignHostKey.wasPressed()) assignTargetRole(client, BlackjackConfig.Role.HOST);
-        while (assignViewerKey.wasPressed()) assignTargetRole(client, BlackjackConfig.Role.VIEWER);
-        while (clearRoleKey.wasPressed()) clearTargetRole(client);
+        while (toggleRoleKey.wasPressed()) toggleActiveRole(client);
+        while (assignHostKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.HOST);
+        while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
+        while (clearRoleKey.wasPressed()) clearSelection(client);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
         updateSelectionHighlights(client);
         updateTotals(client);
     }
 
-    private static void toggleActiveScanRole(MinecraftClient client) {
-        activeScanRole = activeScanRole == BlackjackConfig.Role.HOST ? BlackjackConfig.Role.VIEWER : BlackjackConfig.Role.HOST;
-        BlackjackConfig.setActiveRole(activeScanRole);
+    private static void toggleActiveRole(MinecraftClient client) {
+        activeRole = activeRole == BlackjackConfig.Role.HOST ? BlackjackConfig.Role.VIEWER : BlackjackConfig.Role.HOST;
+        BlackjackConfig.setActiveRole(activeRole);
         BlackjackConfig.save(client);
-        if (client.player != null) client.player.sendMessage(Text.literal("Active side: " + (activeScanRole == BlackjackConfig.Role.HOST ? "Host" : "Viewer") + "."), true);
+        if (client.player != null) client.player.sendMessage(Text.literal("Active side: " + roleName(activeRole) + "."), true);
     }
 
-    private static void assignTargetRole(MinecraftClient client, BlackjackConfig.Role role) {
+    private static void selectCorner(MinecraftClient client, BlackjackConfig.Role role) {
         if (client.player == null || client.world == null) return;
         if (!(client.crosshairTarget instanceof EntityHitResult hit) || !(hit.getEntity() instanceof ItemFrameEntity frame)) {
             client.player.sendMessage(Text.literal("Look directly at an item frame first."), true);
             return;
         }
-        BlackjackConfig.setRole(frame, client.world.getRegistryKey(), role);
-        highlightSelectedFrame(frame, client.world.getTime());
-        BlackjackConfig.save(client);
-        client.player.sendMessage(Text.literal("Item frame assigned to " + (role == BlackjackConfig.Role.HOST ? "Host" : "Viewer") + " for 5 seconds."), true);
+
+        BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
+        String current = frame.getUuidAsString();
+        if (selection.firstKey() == null || selection.secondKey() != null) {
+            // Start a new rectangle immediately; there is never a five-second lockout.
+            BlackjackConfig.setFirstSelection(role, current);
+            BlackjackConfig.setSecondSelection(role, null);
+            highlightSelectedFrame(frame, client.world.getTime());
+            BlackjackConfig.save(client);
+            client.player.sendMessage(Text.literal(roleName(role) + ": first corner selected. Select the opposite corner now."), true);
+        } else {
+            BlackjackConfig.setSecondSelection(role, current);
+            highlightSelectedFrame(frame, client.world.getTime());
+            BlackjackConfig.save(client);
+            client.player.sendMessage(Text.literal(roleName(role) + ": second corner selected. The rectangle is now saved until you select a new one."), true);
+        }
     }
 
-    private static void clearTargetRole(MinecraftClient client) {
-        if (client.player == null || client.world == null) return;
-        if (!(client.crosshairTarget instanceof EntityHitResult hit) || !(hit.getEntity() instanceof ItemFrameEntity frame)) {
-            client.player.sendMessage(Text.literal("Look directly at an item frame first."), true);
-            return;
-        }
-        BlackjackConfig.clearRole(frame, client.world.getRegistryKey());
-        removeHighlight(frame);
+    private static void clearSelection(MinecraftClient client) {
+        if (client.player == null) return;
+        BlackjackConfig.clearSelection(activeRole);
         BlackjackConfig.save(client);
-        client.player.sendMessage(Text.literal("Blackjack frame role cleared."), true);
+        client.player.sendMessage(Text.literal(roleName(activeRole) + " selection cleared."), true);
+    }
+
+    private static String roleName(BlackjackConfig.Role role) {
+        return role == BlackjackConfig.Role.HOST ? "Host" : "Viewer";
     }
 
     private static void highlightSelectedFrame(ItemFrameEntity frame, long currentTick) {
@@ -186,43 +203,74 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     private static ItemFrameEntity findFrameByUuid(MinecraftClient client, UUID uuid) {
         if (client.world == null) return null;
-        Box box = client.player == null ? new Box(-30000000, -2048, -30000000, 30000000, 2048, 30000000) : client.player.getBoundingBox().expand(SCAN_RADIUS + 16);
-        List<ItemFrameEntity> frames = client.world.getEntitiesByClass(ItemFrameEntity.class, box, frame -> frame.getUuid().equals(uuid));
-        return frames.isEmpty() ? null : frames.get(0);
-    }
-
-    private static void removeHighlight(ItemFrameEntity frame) {
-        HighlightState state = selectionHighlights.remove(frame.getUuid());
-        if (state != null) frame.setGlowing(state.wasGlowing());
+        var entity = client.world.getEntity(uuid);
+        return entity instanceof ItemFrameEntity frame ? frame : null;
     }
 
     private static void updateTotals(MinecraftClient client) {
         if (client.player == null || client.world == null) {
-            hostTotal = viewerTotal = 0; hostHasCards = viewerHasCards = false; return;
+            hostTotal = viewerTotal = 0;
+            hostHasCards = viewerHasCards = false;
+            return;
         }
+
         Box box = client.player.getBoundingBox().expand(SCAN_RADIUS);
         List<ItemFrameEntity> frames = client.world.getEntitiesByClass(ItemFrameEntity.class, box, frame -> !frame.isRemoved() && !frame.getHeldItemStack().isEmpty());
         int hostFixed = 0, hostAces = 0, viewerFixed = 0, viewerAces = 0;
         boolean foundHost = false, foundViewer = false;
+
         for (ItemFrameEntity frame : frames) {
-            BlackjackConfig.Role role = BlackjackConfig.getRole(frame, client.world.getRegistryKey());
+            BlackjackConfig.Role role = roleForFrame(client.world.getRegistryKey(), frame);
             if (role == null) continue;
-            ItemStack stack = frame.getHeldItemStack();
-            String name = stack.getCustomName() == null ? "" : stack.getCustomName().getString().trim();
-            int scannedValue = BlackjackConfig.getScannedValue(role, itemSignature(stack));
-            if (scannedValue > 0) name = Integer.toString(scannedValue);
-            if (name.equals("1")) {
-                if (role == BlackjackConfig.Role.HOST) { foundHost = true; hostAces++; } else { foundViewer = true; viewerAces++; }
-                continue;
+            if (!isFrameInsideSelection(client, frame, role)) continue;
+
+            String mapId = mapIdSignature(frame.getHeldItemStack());
+            if (mapId == null) continue;
+            int value = BlackjackConfig.getScannedMapValue(mapId);
+            if (value < 0) continue;
+
+            if (role == BlackjackConfig.Role.HOST) {
+                foundHost = true;
+                if (value == 11) hostAces++; else hostFixed += value;
+            } else {
+                foundViewer = true;
+                if (value == 11) viewerAces++; else viewerFixed += value;
             }
-            if (!name.matches("[2-9]|10")) continue;
-            int value = Integer.parseInt(name);
-            if (role == BlackjackConfig.Role.HOST) { foundHost = true; hostFixed += value; }
-            else { foundViewer = true; viewerFixed += value; }
         }
-        hostHasCards = foundHost; viewerHasCards = foundViewer;
+
+        hostHasCards = foundHost;
+        viewerHasCards = foundViewer;
         hostTotal = BlackjackScore.score(hostFixed, hostAces);
         viewerTotal = BlackjackScore.score(viewerFixed, viewerAces);
+    }
+
+    private static BlackjackConfig.Role roleForFrame(RegistryKey<World> dimension, ItemFrameEntity frame) {
+        // Explicit single-frame assignments from older versions remain supported.
+        return BlackjackConfig.getRole(frame, dimension);
+    }
+
+    /** A saved Host/Viewer rectangle is defined by two corner frame UUIDs. */
+    private static boolean isFrameInsideSelection(MinecraftClient client, ItemFrameEntity frame, BlackjackConfig.Role role) {
+        BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
+        if (selection.firstKey() == null || selection.secondKey() == null) return false;
+        ItemFrameEntity first = findFrameByUuid(client, parseUuid(selection.firstKey()));
+        ItemFrameEntity second = findFrameByUuid(client, parseUuid(selection.secondKey()));
+        if (first == null || second == null) return false;
+
+        BlockPos a = first.getBlockPos();
+        BlockPos b = second.getBlockPos();
+        BlockPos p = frame.getBlockPos();
+        return between(p.getX(), a.getX(), b.getX())
+                && between(p.getY(), a.getY(), b.getY())
+                && between(p.getZ(), a.getZ(), b.getZ());
+    }
+
+    private static UUID parseUuid(String value) {
+        try { return UUID.fromString(value); } catch (IllegalArgumentException e) { return new UUID(0L, 0L); }
+    }
+
+    private static boolean between(int value, int a, int b) {
+        return value >= Math.min(a, b) && value <= Math.max(a, b);
     }
 
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
@@ -230,7 +278,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         if (client.player == null || client.world == null || client.options.hudHidden) return;
         drawTotal(context, client, "Host: " + BlackjackScore.display(hostTotal, hostHasCards), true);
         drawTotal(context, client, "Viewer: " + BlackjackScore.display(viewerTotal, viewerHasCards), false);
-        String active = "Active: " + (activeScanRole == BlackjackConfig.Role.HOST ? "Host" : "Viewer");
+        String active = "Active: " + roleName(activeRole);
         context.drawText(client.textRenderer, active, (client.getWindow().getScaledWidth() - client.textRenderer.getWidth(active)) / 2, 8, 0xFFAAAAAA, true);
     }
 
