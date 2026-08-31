@@ -35,7 +35,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static final String MOD_ID = "blackjackcalculator";
     private static final Identifier HUD_ID = Identifier.of(MOD_ID, "totals");
     private static final double SCAN_RADIUS = 64.0D;
-    private static final int SELECTION_HIGHLIGHT_TICKS = 100; // 5 seconds at 20 TPS
+    private static final int SELECTION_HIGHLIGHT_TICKS = 100;
 
     private static KeyBinding toggleRoleKey;
     private static KeyBinding assignHostKey;
@@ -48,10 +48,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static int viewerTotal;
     private static boolean hostHasCards;
     private static boolean viewerHasCards;
-
-    // Client-only temporary glow state for recently selected frames.
     private static final Map<UUID, HighlightState> selectionHighlights = new HashMap<>();
-
     private record HighlightState(boolean wasGlowing, long expiresAtTick) {}
 
     @Override
@@ -59,14 +56,12 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         MinecraftClient client = MinecraftClient.getInstance();
         BlackjackConfig.load(client);
         activeScanRole = BlackjackConfig.getActiveRole();
-
         KeyBinding.Category category = KeyBinding.Category.create(Identifier.of(MOD_ID, "controls"));
         toggleRoleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.toggle_role", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_H, category));
         assignHostKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_host", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_J, category));
         assignViewerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_viewer", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_U, category));
         clearRoleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.clear_role", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, category));
         editHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.edit_hud", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_P, category));
-
         ClientTickEvents.END_CLIENT_TICK.register(BlackjackCalculatorClient::onClientTick);
         HudElementRegistry.addLast(HUD_ID, BlackjackCalculatorClient::renderHud);
         ScreenEvents.AFTER_INIT.register(BlackjackCalculatorClient::onScreenInit);
@@ -99,6 +94,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             return;
         }
 
+        // Scan is a snapshot for the currently active side. The snapshot remains in
+        // the config and is replaced only by another scan for that side.
         Map<String, Integer> scanned = new java.util.LinkedHashMap<>();
         int occupied = 0;
         for (int slot = 0; slot < 9; slot++) {
@@ -107,14 +104,15 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             String name = stack.getCustomName() == null ? "" : stack.getCustomName().getString().trim();
             if (!(name.matches("[1-9]") || name.equals("10"))) continue;
             int value = Integer.parseInt(name);
+            // The scan reads slots in visual order: top-left to right, then the next row.
+            // The card's registered signature is what will be recognized in item frames.
             scanned.put(itemSignature(stack), value);
             occupied++;
         }
-
         String key = BlackjackConfig.containerKey(client.world.getRegistryKey(), pos);
         BlackjackConfig.saveContainerScan(key, activeScanRole, scanned);
         BlackjackConfig.save(client);
-        client.player.sendMessage(Text.literal("Scanned " + occupied + " card(s) for " + (activeScanRole == BlackjackConfig.Role.HOST ? "Host" : "Viewer") + "."), true);
+        client.player.sendMessage(Text.literal("Scanned " + occupied + " card(s) for " + (activeScanRole == BlackjackConfig.Role.HOST ? "Host" : "Viewer") + ". Matching cards placed in that side's assigned frames will now be counted automatically."), true);
     }
 
     private static String itemSignature(ItemStack stack) {
@@ -167,34 +165,22 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void highlightSelectedFrame(ItemFrameEntity frame, long currentTick) {
         UUID id = frame.getUuid();
         HighlightState existing = selectionHighlights.get(id);
-        if (existing == null) {
-            selectionHighlights.put(id, new HighlightState(frame.isGlowing(), currentTick + SELECTION_HIGHLIGHT_TICKS));
-        } else {
-            selectionHighlights.put(id, new HighlightState(existing.wasGlowing(), currentTick + SELECTION_HIGHLIGHT_TICKS));
-        }
+        selectionHighlights.put(id, new HighlightState(existing == null ? frame.isGlowing() : existing.wasGlowing(), currentTick + SELECTION_HIGHLIGHT_TICKS));
         frame.setGlowing(true);
     }
 
     private static void updateSelectionHighlights(MinecraftClient client) {
-        if (client.world == null) {
-            selectionHighlights.clear();
-            return;
-        }
+        if (client.world == null) { selectionHighlights.clear(); return; }
         long now = client.world.getTime();
         var iterator = selectionHighlights.entrySet().iterator();
         while (iterator.hasNext()) {
             var entry = iterator.next();
             ItemFrameEntity frame = findFrameByUuid(client, entry.getKey());
-            if (frame == null || frame.isRemoved()) {
-                iterator.remove();
-                continue;
-            }
+            if (frame == null || frame.isRemoved()) { iterator.remove(); continue; }
             if (now >= entry.getValue().expiresAtTick()) {
                 frame.setGlowing(entry.getValue().wasGlowing());
                 iterator.remove();
-            } else {
-                frame.setGlowing(true);
-            }
+            } else frame.setGlowing(true);
         }
     }
 
@@ -212,15 +198,12 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     private static void updateTotals(MinecraftClient client) {
         if (client.player == null || client.world == null) {
-            hostTotal = viewerTotal = 0;
-            hostHasCards = viewerHasCards = false;
-            return;
+            hostTotal = viewerTotal = 0; hostHasCards = viewerHasCards = false; return;
         }
         Box box = client.player.getBoundingBox().expand(SCAN_RADIUS);
         List<ItemFrameEntity> frames = client.world.getEntitiesByClass(ItemFrameEntity.class, box, frame -> !frame.isRemoved() && !frame.getHeldItemStack().isEmpty());
         int hostFixed = 0, hostAces = 0, viewerFixed = 0, viewerAces = 0;
         boolean foundHost = false, foundViewer = false;
-
         for (ItemFrameEntity frame : frames) {
             BlackjackConfig.Role role = BlackjackConfig.getRole(frame, client.world.getRegistryKey());
             if (role == null) continue;
@@ -237,8 +220,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             if (role == BlackjackConfig.Role.HOST) { foundHost = true; hostFixed += value; }
             else { foundViewer = true; viewerFixed += value; }
         }
-        hostHasCards = foundHost;
-        viewerHasCards = foundViewer;
+        hostHasCards = foundHost; viewerHasCards = foundViewer;
         hostTotal = BlackjackScore.score(hostFixed, hostAces);
         viewerTotal = BlackjackScore.score(viewerFixed, viewerAces);
     }
