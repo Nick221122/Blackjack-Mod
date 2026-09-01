@@ -36,7 +36,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static final String MOD_ID = "blackjackcalculator";
     private static final Identifier HUD_ID = Identifier.of(MOD_ID, "totals");
     private static final double SCAN_RADIUS = 64.0D;
-    private static final int SELECTION_HIGHLIGHT_TICKS = 100;
     private static final int[] SCAN_VALUES = {11, 3, 4, 5, 6, 7, 8, 9, 10};
 
     private static KeyBinding assignHostKey;
@@ -47,8 +46,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static int viewerTotal;
     private static boolean hostHasCards;
     private static boolean viewerHasCards;
-    private static final Map<UUID, HighlightState> selectionHighlights = new HashMap<>();
-    private record HighlightState(boolean wasGlowing, long expiresAtTick) {}
+
+    private static final Map<UUID, Boolean> selectionHighlights = new HashMap<>();
 
     @Override
     public void onInitializeClient() {
@@ -127,14 +126,14 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
         String current = frame.getUuidAsString();
         if (selection.firstKey() == null || selection.secondKey() != null) {
+            clearSelectionHighlights(client);
             BlackjackConfig.setFirstSelection(role, current);
             BlackjackConfig.setSecondSelection(role, null);
-            highlightSelectedFrame(frame, client.world.getTime());
             BlackjackConfig.save(client);
             client.player.sendMessage(Text.literal(roleName(role) + ": first corner selected."), true);
         } else {
             BlackjackConfig.setSecondSelection(role, current);
-            highlightSelectedFrame(frame, client.world.getTime());
+            clearSelectionHighlights(client);
             BlackjackConfig.save(client);
             client.player.sendMessage(Text.literal(roleName(role) + ": area saved until you select new corners."), true);
         }
@@ -142,26 +141,61 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     private static String roleName(BlackjackConfig.Role role) { return role == BlackjackConfig.Role.HOST ? "Host" : "Viewer"; }
 
-    private static void highlightSelectedFrame(ItemFrameEntity frame, long currentTick) {
-        UUID id = frame.getUuid();
-        HighlightState existing = selectionHighlights.get(id);
-        selectionHighlights.put(id, new HighlightState(existing == null ? frame.isGlowing() : existing.wasGlowing(), currentTick + SELECTION_HIGHLIGHT_TICKS));
-        frame.setGlowing(true);
+    /**
+     * While a role has only its first corner selected, temporarily highlight the
+     * item-frame area between that corner and the frame currently under the crosshair.
+     * The highlight is purely visual and is never saved as part of the selection.
+     */
+    private static void updateSelectionHighlights(MinecraftClient client) {
+        if (client.world == null) {
+            selectionHighlights.clear();
+            return;
+        }
+
+        clearSelectionHighlights(client);
+
+        if (client.crosshairTarget instanceof EntityHitResult hit && hit.getEntity() instanceof ItemFrameEntity currentFrame) {
+            highlightPreviewArea(client, BlackjackConfig.Role.HOST, currentFrame);
+            highlightPreviewArea(client, BlackjackConfig.Role.VIEWER, currentFrame);
+        }
     }
 
-    private static void updateSelectionHighlights(MinecraftClient client) {
-        if (client.world == null) { selectionHighlights.clear(); return; }
-        long now = client.world.getTime();
-        var iterator = selectionHighlights.entrySet().iterator();
-        while (iterator.hasNext()) {
-            var entry = iterator.next();
-            ItemFrameEntity frame = findFrameByUuid(client, entry.getKey());
-            if (frame == null || frame.isRemoved()) { iterator.remove(); continue; }
-            if (now >= entry.getValue().expiresAtTick()) {
-                frame.setGlowing(entry.getValue().wasGlowing());
-                iterator.remove();
-            } else frame.setGlowing(true);
+    private static void highlightPreviewArea(MinecraftClient client, BlackjackConfig.Role role, ItemFrameEntity currentFrame) {
+        BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
+        if (selection.firstKey() == null || selection.secondKey() != null) return;
+        UUID firstUuid = parseUuid(selection.firstKey());
+        ItemFrameEntity firstFrame = findFrameByUuid(client, firstUuid);
+        if (firstFrame == null) return;
+
+        BlockPos a = firstFrame.getBlockPos();
+        BlockPos b = currentFrame.getBlockPos();
+        Box area = new Box(
+                Math.min(a.getX(), b.getX()) - 0.1D,
+                Math.min(a.getY(), b.getY()) - 0.1D,
+                Math.min(a.getZ(), b.getZ()) - 0.1D,
+                Math.max(a.getX(), b.getX()) + 1.1D,
+                Math.max(a.getY(), b.getY()) + 1.1D,
+                Math.max(a.getZ(), b.getZ()) + 1.1D
+        );
+
+        List<ItemFrameEntity> frames = client.world.getEntitiesByClass(ItemFrameEntity.class, area, frame -> !frame.isRemoved());
+        for (ItemFrameEntity frame : frames) {
+            UUID id = frame.getUuid();
+            if (!selectionHighlights.containsKey(id)) selectionHighlights.put(id, frame.isGlowing());
+            frame.setGlowing(true);
         }
+    }
+
+    private static void clearSelectionHighlights(MinecraftClient client) {
+        if (client.world == null) {
+            selectionHighlights.clear();
+            return;
+        }
+        for (Map.Entry<UUID, Boolean> entry : selectionHighlights.entrySet()) {
+            ItemFrameEntity frame = findFrameByUuid(client, entry.getKey());
+            if (frame != null && !frame.isRemoved()) frame.setGlowing(entry.getValue());
+        }
+        selectionHighlights.clear();
     }
 
     private static ItemFrameEntity findFrameByUuid(MinecraftClient client, UUID uuid) {
