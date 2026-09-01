@@ -27,7 +27,6 @@ import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Box;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -46,8 +45,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static int viewerTotal;
     private static boolean hostHasCards;
     private static boolean viewerHasCards;
-
-    private static final Map<UUID, Boolean> selectionHighlights = new HashMap<>();
 
     @Override
     public void onInitializeClient() {
@@ -113,7 +110,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignHostKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.HOST);
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
-        updateSelectionHighlights(client);
         updateTotals(client);
     }
 
@@ -126,89 +122,18 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
         String current = frame.getUuidAsString();
         if (selection.firstKey() == null || selection.secondKey() != null) {
-            clearSelectionHighlights(client);
             BlackjackConfig.setFirstSelection(role, current);
             BlackjackConfig.setSecondSelection(role, null);
             BlackjackConfig.save(client);
             client.player.sendMessage(Text.literal(roleName(role) + ": first corner selected."), true);
         } else {
             BlackjackConfig.setSecondSelection(role, current);
-            clearSelectionHighlights(client);
             BlackjackConfig.save(client);
             client.player.sendMessage(Text.literal(roleName(role) + ": area saved until you select new corners."), true);
         }
     }
 
     private static String roleName(BlackjackConfig.Role role) { return role == BlackjackConfig.Role.HOST ? "Host" : "Viewer"; }
-
-    /**
-     * Shows a temporary preview of the area between the already-selected first
-     * corner and the item frame currently under the crosshair. This is visual
-     * only: it is never persisted and is removed immediately when the second
-     * corner is selected.
-     */
-    private static void updateSelectionHighlights(MinecraftClient client) {
-        clearSelectionHighlights(client);
-        if (client.world == null) return;
-        if (!(client.crosshairTarget instanceof EntityHitResult hit)) return;
-        if (!(hit.getEntity() instanceof ItemFrameEntity currentFrame)) return;
-
-        highlightPreviewArea(client, BlackjackConfig.Role.HOST, currentFrame);
-        highlightPreviewArea(client, BlackjackConfig.Role.VIEWER, currentFrame);
-    }
-
-    private static void highlightPreviewArea(MinecraftClient client, BlackjackConfig.Role role, ItemFrameEntity currentFrame) {
-        BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
-        if (selection.firstKey() == null || selection.secondKey() != null) return;
-
-        UUID firstUuid = parseUuid(selection.firstKey());
-        ItemFrameEntity firstFrame = findFrameByUuid(client, firstUuid);
-        if (firstFrame == null || firstFrame.isRemoved() || currentFrame.isRemoved()) return;
-
-        BlockPos a = firstFrame.getBlockPos();
-        BlockPos b = currentFrame.getBlockPos();
-        int minX = Math.min(a.getX(), b.getX());
-        int maxX = Math.max(a.getX(), b.getX());
-        int minY = Math.min(a.getY(), b.getY());
-        int maxY = Math.max(a.getY(), b.getY());
-        int minZ = Math.min(a.getZ(), b.getZ());
-        int maxZ = Math.max(a.getZ(), b.getZ());
-
-        Box area = new Box(minX - 0.25D, minY - 0.25D, minZ - 0.25D,
-                maxX + 1.25D, maxY + 1.25D, maxZ + 1.25D);
-        List<ItemFrameEntity> frames = client.world.getEntitiesByClass(ItemFrameEntity.class, area,
-                frame -> !frame.isRemoved());
-
-        // Always include both corner frames, even if the entity query clips an
-        // edge. Glowing is client-side and does not alter the saved selection.
-        glowFrame(firstFrame);
-        glowFrame(currentFrame);
-        for (ItemFrameEntity frame : frames) glowFrame(frame);
-    }
-
-    private static void glowFrame(ItemFrameEntity frame) {
-        UUID id = frame.getUuid();
-        selectionHighlights.putIfAbsent(id, frame.isGlowing());
-        frame.setGlowing(true);
-    }
-
-    private static void clearSelectionHighlights(MinecraftClient client) {
-        if (client.world == null) {
-            selectionHighlights.clear();
-            return;
-        }
-        for (Map.Entry<UUID, Boolean> entry : selectionHighlights.entrySet()) {
-            ItemFrameEntity frame = findFrameByUuid(client, entry.getKey());
-            if (frame != null && !frame.isRemoved()) frame.setGlowing(entry.getValue());
-        }
-        selectionHighlights.clear();
-    }
-
-    private static ItemFrameEntity findFrameByUuid(MinecraftClient client, UUID uuid) {
-        if (client.world == null || uuid == null) return null;
-        Entity entity = client.world.getEntity(uuid);
-        return entity instanceof ItemFrameEntity frame ? frame : null;
-    }
 
     private static void updateTotals(MinecraftClient client) {
         if (client.player == null || client.world == null) { hostTotal = viewerTotal = 0; hostHasCards = viewerHasCards = false; return; }
@@ -242,6 +167,12 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         if (first == null || second == null) return false;
         BlockPos a = first.getBlockPos(), b = second.getBlockPos(), p = frame.getBlockPos();
         return between(p.getX(), a.getX(), b.getX()) && between(p.getY(), a.getY(), b.getY()) && between(p.getZ(), a.getZ(), b.getZ());
+    }
+
+    private static ItemFrameEntity findFrameByUuid(MinecraftClient client, UUID uuid) {
+        if (client.world == null || uuid == null) return null;
+        Entity entity = client.world.getEntity(uuid);
+        return entity instanceof ItemFrameEntity frame ? frame : null;
     }
 
     private static UUID parseUuid(String value) { try { return UUID.fromString(value); } catch (Exception e) { return null; } }
