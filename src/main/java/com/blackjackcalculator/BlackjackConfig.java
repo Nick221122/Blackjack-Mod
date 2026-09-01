@@ -5,15 +5,10 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.decoration.ItemFrameEntity;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.world.World;
-import net.minecraft.util.math.BlockPos;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -25,7 +20,6 @@ public final class BlackjackConfig {
     private static int hostX = 8, hostY = 8, viewerX = -1, viewerY = 8;
     private static float hostScale = 1.0f, viewerScale = 1.0f;
     private static String hostName = "Host", viewerName = "Viewer";
-    private static final Map<String, Role> FRAME_ROLES = new HashMap<>();
     private static final Map<String, Integer> SHARED_SCANNED_MAPS = new LinkedHashMap<>();
     private static String hostFirstFrame, hostSecondFrame, viewerFirstFrame, viewerSecondFrame;
     private static boolean loaded;
@@ -51,11 +45,6 @@ public final class BlackjackConfig {
             hostSecondFrame = getString(root, "hostSecondFrame");
             viewerFirstFrame = getString(root, "viewerFirstFrame");
             viewerSecondFrame = getString(root, "viewerSecondFrame");
-            if (root.has("frameRoles") && root.get("frameRoles").isJsonObject()) {
-                for (var e : root.getAsJsonObject("frameRoles").entrySet()) {
-                    try { FRAME_ROLES.put(e.getKey(), Role.valueOf(e.getValue().getAsString())); } catch (IllegalArgumentException ignored) {}
-                }
-            }
             if (root.has("sharedScannedMaps") && root.get("sharedScannedMaps").isJsonObject()) {
                 loadMap(root, "sharedScannedMaps", SHARED_SCANNED_MAPS);
             } else {
@@ -91,22 +80,11 @@ public final class BlackjackConfig {
         if (hostSecondFrame != null) root.addProperty("hostSecondFrame", hostSecondFrame);
         if (viewerFirstFrame != null) root.addProperty("viewerFirstFrame", viewerFirstFrame);
         if (viewerSecondFrame != null) root.addProperty("viewerSecondFrame", viewerSecondFrame);
-        JsonObject roles = new JsonObject();
-        FRAME_ROLES.forEach((k, v) -> roles.addProperty(k, v.name()));
-        root.add("frameRoles", roles);
         JsonObject scanned = new JsonObject();
         SHARED_SCANNED_MAPS.forEach(scanned::addProperty);
         root.add("sharedScannedMaps", scanned);
         try { Files.writeString(client.runDirectory.toPath().resolve(FILE_NAME), GSON.toJson(root)); } catch (IOException ignored) {}
     }
-
-    public static String frameKey(ItemFrameEntity frame, RegistryKey<World> dimension) {
-        return dimension.getValue() + ":" + frame.getUuid();
-    }
-
-    public static Role getRole(ItemFrameEntity frame, RegistryKey<World> dimension) { return FRAME_ROLES.get(frameKey(frame, dimension)); }
-    public static void setRole(ItemFrameEntity frame, RegistryKey<World> dimension, Role role) { FRAME_ROLES.put(frameKey(frame, dimension), role); }
-    public static void clearRole(ItemFrameEntity frame, RegistryKey<World> dimension) { FRAME_ROLES.remove(frameKey(frame, dimension)); }
 
     public static void setFirstSelection(Role role, String key) { if (role == Role.HOST) hostFirstFrame = key; else viewerFirstFrame = key; }
     public static void setSecondSelection(Role role, String key) { if (role == Role.HOST) hostSecondFrame = key; else viewerSecondFrame = key; }
@@ -115,8 +93,6 @@ public final class BlackjackConfig {
 
     public static int getScannedMapValue(String mapId) { Integer value = SHARED_SCANNED_MAPS.get(mapId); return value == null ? -1 : value; }
     public static void replaceSharedScan(Map<String, Integer> values) { SHARED_SCANNED_MAPS.clear(); SHARED_SCANNED_MAPS.putAll(values); }
-    public static int getSharedScanCount() { return SHARED_SCANNED_MAPS.size(); }
-    public static String containerKey(RegistryKey<World> dimension, BlockPos pos) { return dimension.getValue() + ":" + pos.toShortString(); }
 
     public static String getHostName() { return hostName; }
     public static String getViewerName() { return viewerName; }
