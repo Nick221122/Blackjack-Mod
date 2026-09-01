@@ -13,17 +13,12 @@ import net.minecraft.world.debug.gizmo.GizmoDrawing;
 
 import java.util.UUID;
 
-/**
- * Shows a temporary world-space outline while the player is choosing the
- * second corner of a Host or Viewer item-frame area.
- *
- * The outline is only a preview. Once the second corner is selected,
- * FrameSelection.secondKey() becomes non-null and the preview immediately
- * stops being emitted.
- */
+/** Temporary full-area preview while choosing the second corner of a selection. */
 public final class SelectionHighlightRenderer implements ClientModInitializer {
-    private static final int HOST_COLOR = 0xFF33FF66;
-    private static final int VIEWER_COLOR = 0xFF33AAFF;
+    private static final int HOST_STROKE = 0xFF33FF66;
+    private static final int HOST_FILL = 0x3033FF66;
+    private static final int VIEWER_STROKE = 0xFF33AAFF;
+    private static final int VIEWER_FILL = 0x3033AAFF;
 
     @Override
     public void onInitializeClient() {
@@ -32,59 +27,40 @@ public final class SelectionHighlightRenderer implements ClientModInitializer {
 
     private static void render(WorldRenderContext context) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.world == null || client.player == null) {
-            return;
-        }
+        if (client.world == null || client.player == null) return;
+        if (!(client.crosshairTarget instanceof net.minecraft.util.hit.EntityHitResult hit)) return;
+        if (!(hit.getEntity() instanceof ItemFrameEntity currentFrame)) return;
 
-        if (!(client.crosshairTarget instanceof net.minecraft.util.hit.EntityHitResult hit)) {
-            return;
-        }
-        if (!(hit.getEntity() instanceof ItemFrameEntity currentFrame)) {
-            return;
-        }
-
-        renderRole(client, BlackjackConfig.Role.HOST, currentFrame, HOST_COLOR);
-        renderRole(client, BlackjackConfig.Role.VIEWER, currentFrame, VIEWER_COLOR);
+        renderRole(client, BlackjackConfig.Role.HOST, currentFrame, HOST_STROKE, HOST_FILL);
+        renderRole(client, BlackjackConfig.Role.VIEWER, currentFrame, VIEWER_STROKE, VIEWER_FILL);
     }
 
     private static void renderRole(MinecraftClient client,
                                    BlackjackConfig.Role role,
                                    ItemFrameEntity currentFrame,
-                                   int color) {
+                                   int stroke,
+                                   int fill) {
         BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
-
-        // A preview exists only after the first corner and before the second.
-        if (selection.firstKey() == null || selection.secondKey() != null) {
-            return;
-        }
+        if (selection.firstKey() == null || selection.secondKey() != null) return;
 
         UUID firstUuid = parseUuid(selection.firstKey());
-        if (firstUuid == null) {
-            return;
-        }
-
+        if (firstUuid == null) return;
         Entity entity = client.world.getEntity(firstUuid);
-        if (!(entity instanceof ItemFrameEntity firstFrame) || firstFrame.isRemoved()) {
-            return;
-        }
+        if (!(entity instanceof ItemFrameEntity firstFrame) || firstFrame.isRemoved()) return;
 
         BlockPos a = firstFrame.getBlockPos();
         BlockPos b = currentFrame.getBlockPos();
         Box box = new Box(
-                Math.min(a.getX(), b.getX()) - 0.08D,
-                Math.min(a.getY(), b.getY()) - 0.08D,
-                Math.min(a.getZ(), b.getZ()) - 0.08D,
-                Math.max(a.getX(), b.getX()) + 1.08D,
-                Math.max(a.getY(), b.getY()) + 1.08D,
-                Math.max(a.getZ(), b.getZ()) + 1.08D
+                Math.min(a.getX(), b.getX()) - 0.05D,
+                Math.min(a.getY(), b.getY()) - 0.05D,
+                Math.min(a.getZ(), b.getZ()) - 0.05D,
+                Math.max(a.getX(), b.getX()) + 1.05D,
+                Math.max(a.getY(), b.getY()) + 1.05D,
+                Math.max(a.getZ(), b.getZ()) + 1.05D
         );
 
-        // Minecraft 1.21.11 uses the Gizmo rendering system for debug-style
-        // world outlines. Emit the preview for one tick at a time so it is
-        // refreshed only while selection is active and disappears immediately
-        // after the second corner is saved.
         try (var scope = client.newGizmoScope()) {
-            GizmoDrawing.box(box, DrawStyle.stroked(color, 3.0F))
+            GizmoDrawing.box(box, DrawStyle.filledAndStroked(stroke, 3.0F, fill))
                     .withLifespan(1)
                     .ignoreOcclusion();
         }
