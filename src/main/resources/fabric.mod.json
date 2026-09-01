@@ -11,7 +11,8 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "com.blackjackcalculator.BlackjackCalculatorClient"
+      "com.blackjackcalculator.BlackjackCalculatorClient",
+      "com.blackjackcalculator.SelectionHighlightRenderer"
     ]
   },
   "depends": {
