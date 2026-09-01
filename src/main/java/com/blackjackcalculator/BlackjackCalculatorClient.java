@@ -142,48 +142,54 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static String roleName(BlackjackConfig.Role role) { return role == BlackjackConfig.Role.HOST ? "Host" : "Viewer"; }
 
     /**
-     * While a role has only its first corner selected, temporarily highlight the
-     * item-frame area between that corner and the frame currently under the crosshair.
-     * The highlight is purely visual and is never saved as part of the selection.
+     * Shows a temporary preview of the area between the already-selected first
+     * corner and the item frame currently under the crosshair. This is visual
+     * only: it is never persisted and is removed immediately when the second
+     * corner is selected.
      */
     private static void updateSelectionHighlights(MinecraftClient client) {
-        if (client.world == null) {
-            selectionHighlights.clear();
-            return;
-        }
-
         clearSelectionHighlights(client);
+        if (client.world == null) return;
+        if (!(client.crosshairTarget instanceof EntityHitResult hit)) return;
+        if (!(hit.getEntity() instanceof ItemFrameEntity currentFrame)) return;
 
-        if (client.crosshairTarget instanceof EntityHitResult hit && hit.getEntity() instanceof ItemFrameEntity currentFrame) {
-            highlightPreviewArea(client, BlackjackConfig.Role.HOST, currentFrame);
-            highlightPreviewArea(client, BlackjackConfig.Role.VIEWER, currentFrame);
-        }
+        highlightPreviewArea(client, BlackjackConfig.Role.HOST, currentFrame);
+        highlightPreviewArea(client, BlackjackConfig.Role.VIEWER, currentFrame);
     }
 
     private static void highlightPreviewArea(MinecraftClient client, BlackjackConfig.Role role, ItemFrameEntity currentFrame) {
         BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
         if (selection.firstKey() == null || selection.secondKey() != null) return;
+
         UUID firstUuid = parseUuid(selection.firstKey());
         ItemFrameEntity firstFrame = findFrameByUuid(client, firstUuid);
-        if (firstFrame == null) return;
+        if (firstFrame == null || firstFrame.isRemoved() || currentFrame.isRemoved()) return;
 
         BlockPos a = firstFrame.getBlockPos();
         BlockPos b = currentFrame.getBlockPos();
-        Box area = new Box(
-                Math.min(a.getX(), b.getX()) - 0.1D,
-                Math.min(a.getY(), b.getY()) - 0.1D,
-                Math.min(a.getZ(), b.getZ()) - 0.1D,
-                Math.max(a.getX(), b.getX()) + 1.1D,
-                Math.max(a.getY(), b.getY()) + 1.1D,
-                Math.max(a.getZ(), b.getZ()) + 1.1D
-        );
+        int minX = Math.min(a.getX(), b.getX());
+        int maxX = Math.max(a.getX(), b.getX());
+        int minY = Math.min(a.getY(), b.getY());
+        int maxY = Math.max(a.getY(), b.getY());
+        int minZ = Math.min(a.getZ(), b.getZ());
+        int maxZ = Math.max(a.getZ(), b.getZ());
 
-        List<ItemFrameEntity> frames = client.world.getEntitiesByClass(ItemFrameEntity.class, area, frame -> !frame.isRemoved());
-        for (ItemFrameEntity frame : frames) {
-            UUID id = frame.getUuid();
-            if (!selectionHighlights.containsKey(id)) selectionHighlights.put(id, frame.isGlowing());
-            frame.setGlowing(true);
-        }
+        Box area = new Box(minX - 0.25D, minY - 0.25D, minZ - 0.25D,
+                maxX + 1.25D, maxY + 1.25D, maxZ + 1.25D);
+        List<ItemFrameEntity> frames = client.world.getEntitiesByClass(ItemFrameEntity.class, area,
+                frame -> !frame.isRemoved());
+
+        // Always include both corner frames, even if the entity query clips an
+        // edge. Glowing is client-side and does not alter the saved selection.
+        glowFrame(firstFrame);
+        glowFrame(currentFrame);
+        for (ItemFrameEntity frame : frames) glowFrame(frame);
+    }
+
+    private static void glowFrame(ItemFrameEntity frame) {
+        UUID id = frame.getUuid();
+        selectionHighlights.putIfAbsent(id, frame.isGlowing());
+        frame.setGlowing(true);
     }
 
     private static void clearSelectionHighlights(MinecraftClient client) {
