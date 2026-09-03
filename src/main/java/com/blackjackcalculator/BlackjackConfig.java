@@ -5,6 +5,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.decoration.ItemFrameEntity;
+import net.minecraft.util.math.BlockPos;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -45,12 +47,7 @@ public final class BlackjackConfig {
             hostSecondFrame = getString(root, "hostSecondFrame");
             viewerFirstFrame = getString(root, "viewerFirstFrame");
             viewerSecondFrame = getString(root, "viewerSecondFrame");
-            if (root.has("sharedScannedMaps") && root.get("sharedScannedMaps").isJsonObject()) {
-                loadMap(root, "sharedScannedMaps", SHARED_SCANNED_MAPS);
-            } else {
-                loadMap(root, "hostScannedItems", SHARED_SCANNED_MAPS);
-                if (SHARED_SCANNED_MAPS.isEmpty()) loadMap(root, "viewerScannedItems", SHARED_SCANNED_MAPS);
-            }
+            if (root.has("sharedScannedMaps") && root.get("sharedScannedMaps").isJsonObject()) loadMap(root, "sharedScannedMaps", SHARED_SCANNED_MAPS);
         } catch (Exception ignored) {}
     }
 
@@ -68,22 +65,30 @@ public final class BlackjackConfig {
     public static void save(MinecraftClient client) {
         if (client == null) return;
         JsonObject root = new JsonObject();
-        root.addProperty("hostX", hostX);
-        root.addProperty("hostY", hostY);
-        root.addProperty("viewerX", viewerX);
-        root.addProperty("viewerY", viewerY);
-        root.addProperty("hostScale", hostScale);
-        root.addProperty("viewerScale", viewerScale);
-        root.addProperty("hostName", hostName);
-        root.addProperty("viewerName", viewerName);
+        root.addProperty("hostX", hostX); root.addProperty("hostY", hostY);
+        root.addProperty("viewerX", viewerX); root.addProperty("viewerY", viewerY);
+        root.addProperty("hostScale", hostScale); root.addProperty("viewerScale", viewerScale);
+        root.addProperty("hostName", hostName); root.addProperty("viewerName", viewerName);
         if (hostFirstFrame != null) root.addProperty("hostFirstFrame", hostFirstFrame);
         if (hostSecondFrame != null) root.addProperty("hostSecondFrame", hostSecondFrame);
         if (viewerFirstFrame != null) root.addProperty("viewerFirstFrame", viewerFirstFrame);
         if (viewerSecondFrame != null) root.addProperty("viewerSecondFrame", viewerSecondFrame);
-        JsonObject scanned = new JsonObject();
-        SHARED_SCANNED_MAPS.forEach(scanned::addProperty);
-        root.add("sharedScannedMaps", scanned);
+        JsonObject scanned = new JsonObject(); SHARED_SCANNED_MAPS.forEach(scanned::addProperty); root.add("sharedScannedMaps", scanned);
         try { Files.writeString(client.runDirectory.toPath().resolve(FILE_NAME), GSON.toJson(root)); } catch (IOException ignored) {}
+    }
+
+    /** Stable selection key based on block position instead of an entity UUID. */
+    public static String selectionKey(ItemFrameEntity frame) {
+        BlockPos p = frame.getBlockPos();
+        return p.getX() + "|" + p.getY() + "|" + p.getZ();
+    }
+
+    public static BlockPos parseSelectionPos(String key) {
+        if (key == null) return null;
+        String[] parts = key.split("\\|");
+        if (parts.length != 3) return null;
+        try { return new BlockPos(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2])); }
+        catch (NumberFormatException ignored) { return null; }
     }
 
     public static void setFirstSelection(Role role, String key) { if (role == Role.HOST) hostFirstFrame = key; else viewerFirstFrame = key; }
@@ -93,7 +98,6 @@ public final class BlackjackConfig {
 
     public static int getScannedMapValue(String mapId) { Integer value = SHARED_SCANNED_MAPS.get(mapId); return value == null ? -1 : value; }
     public static void replaceSharedScan(Map<String, Integer> values) { SHARED_SCANNED_MAPS.clear(); SHARED_SCANNED_MAPS.putAll(values); }
-
     public static String getHostName() { return hostName; }
     public static String getViewerName() { return viewerName; }
     public static void setHostName(String name) { hostName = name == null ? "" : name; }
