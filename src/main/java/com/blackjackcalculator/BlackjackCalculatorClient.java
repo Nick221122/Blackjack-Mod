@@ -35,6 +35,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static final String MOD_ID = "blackjackcalculator";
     private static final Identifier HUD_ID = Identifier.of(MOD_ID, "totals");
     private static final double SCAN_RADIUS = 64.0D;
+    private static final double SELECTION_RAY_DISTANCE = 64.0D;
     private static final int[] SCAN_VALUES = {11, 3, 4, 5, 6, 7, 8, 9, 10};
 
     private static KeyBinding assignHostKey;
@@ -115,12 +116,13 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     private static void selectCorner(MinecraftClient client, BlackjackConfig.Role role) {
         if (client.player == null || client.world == null) return;
-        if (!(client.crosshairTarget instanceof EntityHitResult hit) || !(hit.getEntity() instanceof ItemFrameEntity frame)) {
+        ItemFrameEntity frame = findTargetFrame(client);
+        if (frame == null) {
             client.player.sendMessage(Text.literal("Look directly at an item frame first."), true);
             return;
         }
         BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
-        String current = frame.getUuidAsString();
+        String current = BlackjackConfig.selectionKey(frame);
         if (selection.firstKey() == null || selection.secondKey() != null) {
             BlackjackConfig.setFirstSelection(role, current);
             BlackjackConfig.setSecondSelection(role, null);
@@ -131,6 +133,27 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             BlackjackConfig.save(client);
             client.player.sendMessage(Text.literal(roleName(role) + ": area saved until you select new corners."), true);
         }
+    }
+
+    /** Raycasts up to 64 blocks so selection is not limited by normal interaction distance. */
+    private static ItemFrameEntity findTargetFrame(MinecraftClient client) {
+        if (client.player == null || client.world == null) return null;
+        var start = client.player.getCameraPosVec(1.0F);
+        var rotation = client.player.getRotationVec(1.0F);
+        var end = start.add(rotation.multiply(SELECTION_RAY_DISTANCE));
+        Box searchBox = new Box(start, end).expand(1.0D);
+        EntityHitResult hit = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (ItemFrameEntity frame : client.world.getEntitiesByClass(ItemFrameEntity.class, searchBox, f -> !f.isRemoved())) {
+            var result = frame.getBoundingBox().expand(0.15D).raycast(start, end);
+            if (result.isEmpty()) continue;
+            double distance = result.get().squaredDistanceTo(start);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                hit = new EntityHitResult(frame, result.get());
+            }
+        }
+        return hit == null ? null : (ItemFrameEntity) hit.getEntity();
     }
 
     private static String roleName(BlackjackConfig.Role role) { return role == BlackjackConfig.Role.HOST ? "Host" : "Viewer"; }
@@ -161,21 +184,13 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     private static boolean isFrameInsideSelection(MinecraftClient client, ItemFrameEntity frame, BlackjackConfig.Role role) {
         BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
-        if (selection.firstKey() == null || selection.secondKey() == null) return false;
-        ItemFrameEntity first = findFrameByUuid(client, parseUuid(selection.firstKey()));
-        ItemFrameEntity second = findFrameByUuid(client, parseUuid(selection.secondKey()));
+        BlockPos first = BlackjackConfig.parseSelectionPos(selection.firstKey());
+        BlockPos second = BlackjackConfig.parseSelectionPos(selection.secondKey());
         if (first == null || second == null) return false;
-        BlockPos a = first.getBlockPos(), b = second.getBlockPos(), p = frame.getBlockPos();
-        return between(p.getX(), a.getX(), b.getX()) && between(p.getY(), a.getY(), b.getY()) && between(p.getZ(), a.getZ(), b.getZ());
+        BlockPos p = frame.getBlockPos();
+        return between(p.getX(), first.getX(), second.getX()) && between(p.getY(), first.getY(), second.getY()) && between(p.getZ(), first.getZ(), second.getZ());
     }
 
-    private static ItemFrameEntity findFrameByUuid(MinecraftClient client, UUID uuid) {
-        if (client.world == null || uuid == null) return null;
-        Entity entity = client.world.getEntity(uuid);
-        return entity instanceof ItemFrameEntity frame ? frame : null;
-    }
-
-    private static UUID parseUuid(String value) { try { return UUID.fromString(value); } catch (Exception e) { return null; } }
     private static boolean between(int value, int a, int b) { return value >= Math.min(a, b) && value <= Math.max(a, b); }
 
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
