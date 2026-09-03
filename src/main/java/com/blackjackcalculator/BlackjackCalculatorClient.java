@@ -23,7 +23,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Box;
 import org.lwjgl.glfw.GLFW;
 
@@ -34,8 +33,9 @@ import java.util.UUID;
 public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static final String MOD_ID = "blackjackcalculator";
     private static final Identifier HUD_ID = Identifier.of(MOD_ID, "totals");
-    private static final double SCAN_RADIUS = 64.0D;
-    private static final double SELECTION_RAY_DISTANCE = 64.0D;
+    private static final double SCAN_RADIUS = 256.0D;
+    private static final double SELECTION_RAY_DISTANCE = 256.0D;
+    private static final double SELECTION_HIT_EXPANSION = 0.5D;
     private static final int[] SCAN_VALUES = {11, 3, 4, 5, 6, 7, 8, 9, 10};
 
     private static KeyBinding assignHostKey;
@@ -115,14 +115,14 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         }
     }
 
-    /** Selection uses a 64-block custom raycast instead of the normal interaction range. */
-    private static ItemFrameEntity findTargetFrame(MinecraftClient client) {
+    /** Long-range selection raycast with a forgiving hitbox so distant frames are easier to select. */
+    static ItemFrameEntity findTargetFrame(MinecraftClient client) {
         var start = client.player.getCameraPosVec(1.0F);
         var end = start.add(client.player.getRotationVec(1.0F).multiply(SELECTION_RAY_DISTANCE));
         Box searchBox = new Box(start, end).expand(1.0D);
         ItemFrameEntity best = null; double bestDistance = Double.MAX_VALUE;
         for (ItemFrameEntity frame : client.world.getEntitiesByClass(ItemFrameEntity.class, searchBox, f -> !f.isRemoved())) {
-            var result = frame.getBoundingBox().expand(0.15D).raycast(start, end);
+            var result = frame.getBoundingBox().expand(SELECTION_HIT_EXPANSION).raycast(start, end);
             if (result.isEmpty()) continue;
             double distance = result.get().squaredDistanceTo(start);
             if (distance < bestDistance) { bestDistance = distance; best = frame; }
