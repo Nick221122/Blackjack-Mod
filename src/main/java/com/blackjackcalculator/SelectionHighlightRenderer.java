@@ -25,8 +25,8 @@ public final class SelectionHighlightRenderer implements ClientModInitializer {
     private static void render(WorldRenderContext context) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.world == null || client.player == null) return;
-        if (!(client.crosshairTarget instanceof net.minecraft.util.hit.EntityHitResult hit)) return;
-        if (!(hit.getEntity() instanceof ItemFrameEntity currentFrame)) return;
+        ItemFrameEntity currentFrame = BlackjackCalculatorClient.findTargetFrame(client);
+        if (currentFrame == null) return;
         renderRole(client, BlackjackConfig.Role.HOST, currentFrame, HOST_STROKE, HOST_FILL);
         renderRole(client, BlackjackConfig.Role.VIEWER, currentFrame, VIEWER_STROKE, VIEWER_FILL);
     }
