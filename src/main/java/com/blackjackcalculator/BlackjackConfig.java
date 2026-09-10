@@ -4,9 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.decoration.ItemFrameEntity;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.decoration.ItemFrame;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,10 +28,10 @@ public final class BlackjackConfig {
 
     private BlackjackConfig() {}
 
-    public static void load(MinecraftClient client) {
+    public static void load(Minecraft client) {
         if (loaded) return;
         loaded = true;
-        Path path = client.runDirectory.toPath().resolve(FILE_NAME);
+        Path path = client.gameDirectory.toPath().resolve(FILE_NAME);
         if (!Files.exists(path)) return;
         try {
             JsonObject root = JsonParser.parseReader(Files.newBufferedReader(path)).getAsJsonObject();
@@ -62,7 +62,7 @@ public final class BlackjackConfig {
         });
     }
 
-    public static void save(MinecraftClient client) {
+    public static void save(Minecraft client) {
         if (client == null) return;
         JsonObject root = new JsonObject();
         root.addProperty("hostX", hostX); root.addProperty("hostY", hostY);
@@ -73,13 +73,15 @@ public final class BlackjackConfig {
         if (hostSecondFrame != null) root.addProperty("hostSecondFrame", hostSecondFrame);
         if (viewerFirstFrame != null) root.addProperty("viewerFirstFrame", viewerFirstFrame);
         if (viewerSecondFrame != null) root.addProperty("viewerSecondFrame", viewerSecondFrame);
-        JsonObject scanned = new JsonObject(); SHARED_SCANNED_MAPS.forEach(scanned::addProperty); root.add("sharedScannedMaps", scanned);
-        try { Files.writeString(client.runDirectory.toPath().resolve(FILE_NAME), GSON.toJson(root)); } catch (IOException ignored) {}
+        JsonObject scanned = new JsonObject();
+        SHARED_SCANNED_MAPS.forEach(scanned::addProperty);
+        root.add("sharedScannedMaps", scanned);
+        try { Files.writeString(client.gameDirectory.toPath().resolve(FILE_NAME), GSON.toJson(root)); } catch (IOException ignored) {}
     }
 
     /** Stable selection key based on block position instead of an entity UUID. */
-    public static String selectionKey(ItemFrameEntity frame) {
-        BlockPos p = frame.getBlockPos();
+    public static String selectionKey(ItemFrame frame) {
+        BlockPos p = frame.blockPosition();
         return p.getX() + "|" + p.getY() + "|" + p.getZ();
     }
 
@@ -87,8 +89,11 @@ public final class BlackjackConfig {
         if (key == null) return null;
         String[] parts = key.split("\\|");
         if (parts.length != 3) return null;
-        try { return new BlockPos(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2])); }
-        catch (NumberFormatException ignored) { return null; }
+        try {
+            return new BlockPos(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     public static void setFirstSelection(Role role, String key) { if (role == Role.HOST) hostFirstFrame = key; else viewerFirstFrame = key; }
