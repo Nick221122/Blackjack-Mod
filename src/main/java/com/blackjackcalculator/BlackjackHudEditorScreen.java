@@ -1,13 +1,14 @@
 package com.blackjackcalculator;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.text.Text;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 /** HUD editor for independently positioning and naming Host and Viewer. */
@@ -17,56 +18,56 @@ public final class BlackjackHudEditorScreen extends Screen {
     private DragTarget dragging = DragTarget.NONE;
     private int dragOffsetX;
     private int dragOffsetY;
-    private TextFieldWidget hostNameField;
-    private TextFieldWidget viewerNameField;
+    private EditBox hostNameField;
+    private EditBox viewerNameField;
 
     public BlackjackHudEditorScreen() {
-        super(Text.literal("Blackjack HUD Editor"));
+        super(Component.literal("Blackjack HUD Editor"));
     }
 
     @Override
     protected void init() {
         int panelX = 12;
-        hostNameField = new TextFieldWidget(textRenderer, panelX, 42, 130, 20, Text.literal("Host name"));
+        hostNameField = new EditBox(font, panelX, 42, 130, 20, Component.literal("Host name"));
         hostNameField.setMaxLength(32);
-        hostNameField.setText(BlackjackConfig.getHostName());
-        hostNameField.setPlaceholder(Text.literal("blank = numbers only"));
-        addDrawableChild(hostNameField);
+        hostNameField.setValue(BlackjackConfig.getHostName());
+        hostNameField.setHint(Component.literal("blank = numbers only"));
+        addRenderableWidget(hostNameField);
 
-        viewerNameField = new TextFieldWidget(textRenderer, panelX, 92, 130, 20, Text.literal("Viewer name"));
+        viewerNameField = new EditBox(font, panelX, 92, 130, 20, Component.literal("Viewer name"));
         viewerNameField.setMaxLength(32);
-        viewerNameField.setText(BlackjackConfig.getViewerName());
-        viewerNameField.setPlaceholder(Text.literal("blank = numbers only"));
-        addDrawableChild(viewerNameField);
+        viewerNameField.setValue(BlackjackConfig.getViewerName());
+        viewerNameField.setHint(Component.literal("blank = numbers only"));
+        addRenderableWidget(viewerNameField);
 
-        addDrawableChild(ButtonWidget.builder(Text.literal("Save names"), button -> saveNames()).dimensions(panelX, 120, 130, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Reset positions"), button -> BlackjackConfig.resetPositions()).dimensions(panelX, 145, 130, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close()).dimensions(panelX, 170, 130, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Save names"), button -> saveNames()).bounds(panelX, 120, 130, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Reset positions"), button -> BlackjackConfig.resetPositions()).bounds(panelX, 145, 130, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Done"), button -> onClose()).bounds(panelX, 170, 130, 20).build());
     }
 
     private void saveNames() {
-        BlackjackConfig.setHostName(hostNameField.getText());
-        BlackjackConfig.setViewerName(viewerNameField.getText());
-        BlackjackConfig.save(MinecraftClient.getInstance());
+        BlackjackConfig.setHostName(hostNameField.getValue());
+        BlackjackConfig.setViewerName(viewerNameField.getValue());
+        BlackjackConfig.save(Minecraft.getInstance());
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
-        context.fill(0, 0, width, height, 0x88000000);
-        drawGrid(context);
-        context.drawTextWithShadow(textRenderer, "HUD Grid Editor", 12, 18, 0xFFFFFFFF);
-        context.drawTextWithShadow(textRenderer, "Host name", 12, 30, 0xFFCCCCCC);
-        context.drawTextWithShadow(textRenderer, "Viewer name", 12, 80, 0xFFCCCCCC);
-        context.drawTextWithShadow(textRenderer, "Drag either preview. R = reset. Esc = save & close.", 160, 18, 0xFFFFFFFF);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float deltaTicks) {
+        graphics.fill(0, 0, width, height, 0x88000000);
+        drawGrid(graphics);
+        graphics.text(font, Component.literal("HUD Grid Editor"), 12, 18, 0xFFFFFFFF, true);
+        graphics.text(font, Component.literal("Host name"), 12, 30, 0xFFCCCCCC, true);
+        graphics.text(font, Component.literal("Viewer name"), 12, 80, 0xFFCCCCCC, true);
+        graphics.text(font, Component.literal("Drag either preview. R = reset. Esc = save & close."), 160, 18, 0xFFFFFFFF, true);
 
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client.player != null) {
             String host = formatPreview(BlackjackConfig.getHostName(), BlackjackScore.display(BlackjackCalculatorClient.getHostTotal(), BlackjackCalculatorClient.hasHostCards()), true);
             String viewer = formatPreview(BlackjackConfig.getViewerName(), BlackjackScore.display(BlackjackCalculatorClient.getViewerTotal(), BlackjackCalculatorClient.hasViewerCards()), false);
-            drawPreview(context, client, host, true);
-            drawPreview(context, client, viewer, false);
+            drawPreview(graphics, client, host, true);
+            drawPreview(graphics, client, viewer, false);
         }
-        super.render(context, mouseX, mouseY, deltaTicks);
+        super.extractRenderState(graphics, mouseX, mouseY, deltaTicks);
     }
 
     private String formatPreview(String name, String score, boolean host) {
@@ -74,86 +75,86 @@ public final class BlackjackHudEditorScreen extends Screen {
         return host ? name + " " + score : score + " " + name;
     }
 
-    private void drawGrid(DrawContext context) {
+    private void drawGrid(GuiGraphicsExtractor graphics) {
         int spacing = 20;
-        for (int x = 0; x < width; x += spacing) context.drawVerticalLine(x, 0, height, 0x33222222);
-        for (int y = 0; y < height; y += spacing) context.drawHorizontalLine(0, width, y, 0x33222222);
+        for (int x = 0; x < width; x += spacing) graphics.fill(x, 0, x + 1, height, 0x33222222);
+        for (int y = 0; y < height; y += spacing) graphics.fill(0, y, width, y + 1, 0x33222222);
     }
 
-    private void drawPreview(DrawContext context, MinecraftClient client, String text, boolean host) {
+    private void drawPreview(GuiGraphicsExtractor graphics, Minecraft client, String text, boolean host) {
         int x = host ? BlackjackConfig.getHostX() : resolvedViewerX(client, text);
         int y = host ? BlackjackConfig.getHostY() : BlackjackConfig.getViewerY();
-        int textWidth = client.textRenderer.getWidth(text);
-        context.fill(x - 4, y - 4, x + textWidth + 4, y + 14, 0x66000000);
-        context.drawTextWithShadow(client.textRenderer, text, x, y, 0xFFFFFFFF);
+        int textWidth = client.font.width(text);
+        graphics.fill(x - 4, y - 4, x + textWidth + 4, y + 14, 0x66000000);
+        graphics.text(client.font, Component.literal(text), x, y, 0xFFFFFFFF, true);
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubled) {
-        if (click.button() != GLFW.GLFW_MOUSE_BUTTON_1) return super.mouseClicked(click, doubled);
-        MinecraftClient client = MinecraftClient.getInstance();
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubled) {
+        if (event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return super.mouseClicked(event, doubled);
+        Minecraft client = Minecraft.getInstance();
         String host = formatPreview(BlackjackConfig.getHostName(), BlackjackScore.display(BlackjackCalculatorClient.getHostTotal(), BlackjackCalculatorClient.hasHostCards()), true);
         String viewer = formatPreview(BlackjackConfig.getViewerName(), BlackjackScore.display(BlackjackCalculatorClient.getViewerTotal(), BlackjackCalculatorClient.hasViewerCards()), false);
 
-        if (inside(click.x(), click.y(), BlackjackConfig.getHostX(), BlackjackConfig.getHostY(), client.textRenderer.getWidth(host))) {
+        if (inside(event.x(), event.y(), BlackjackConfig.getHostX(), BlackjackConfig.getHostY(), client.font.width(host))) {
             dragging = DragTarget.HOST;
-            dragOffsetX = (int) click.x() - BlackjackConfig.getHostX();
-            dragOffsetY = (int) click.y() - BlackjackConfig.getHostY();
+            dragOffsetX = (int) event.x() - BlackjackConfig.getHostX();
+            dragOffsetY = (int) event.y() - BlackjackConfig.getHostY();
             return true;
         }
         int viewerX = resolvedViewerX(client, viewer);
-        if (inside(click.x(), click.y(), viewerX, BlackjackConfig.getViewerY(), client.textRenderer.getWidth(viewer))) {
+        if (inside(event.x(), event.y(), viewerX, BlackjackConfig.getViewerY(), client.font.width(viewer))) {
             dragging = DragTarget.VIEWER;
-            dragOffsetX = (int) click.x() - viewerX;
-            dragOffsetY = (int) click.y() - BlackjackConfig.getViewerY();
+            dragOffsetX = (int) event.x() - viewerX;
+            dragOffsetY = (int) event.y() - BlackjackConfig.getViewerY();
             return true;
         }
-        return super.mouseClicked(click, doubled);
+        return super.mouseClicked(event, doubled);
     }
 
     @Override
-    public boolean mouseDragged(Click click, double offsetX, double offsetY) {
-        if (click.button() != GLFW.GLFW_MOUSE_BUTTON_1 || dragging == DragTarget.NONE) return false;
-        int x = clamp((int) click.x() - dragOffsetX, 2, width - 2);
-        int y = clamp((int) click.y() - dragOffsetY, 2, height - 14);
+    public boolean mouseDragged(MouseButtonEvent event, double offsetX, double offsetY) {
+        if (event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT || dragging == DragTarget.NONE) return false;
+        int x = clamp((int) event.x() - dragOffsetX, 2, width - 2);
+        int y = clamp((int) event.y() - dragOffsetY, 2, height - 14);
         if (dragging == DragTarget.HOST) BlackjackConfig.setHostPosition(x, y);
         else BlackjackConfig.setViewerPosition(x, y);
         return true;
     }
 
     @Override
-    public boolean mouseReleased(Click click) {
-        if (click.button() == GLFW.GLFW_MOUSE_BUTTON_1) {
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (event.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             dragging = DragTarget.NONE;
             saveNames();
             return true;
         }
-        return super.mouseReleased(click);
+        return super.mouseReleased(event);
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-        if (input.getKeycode() == GLFW.GLFW_KEY_R) {
+    public boolean keyPressed(KeyEvent event) {
+        if (event.key() == GLFW.GLFW_KEY_R) {
             BlackjackConfig.resetPositions();
             return true;
         }
-        if (input.getKeycode() == GLFW.GLFW_KEY_ESCAPE) {
-            close();
+        if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+            onClose();
             return true;
         }
-        return super.keyPressed(input);
+        return super.keyPressed(event);
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         saveNames();
-        MinecraftClient.getInstance().setScreen(null);
+        Minecraft.getInstance().gui.setScreen(null);
     }
 
-    private int resolvedViewerX(MinecraftClient client, String text) {
+    private int resolvedViewerX(Minecraft client, String text) {
         int configured = BlackjackConfig.getViewerX();
         if (configured >= 0) return configured;
-        return client.getWindow().getScaledWidth() - client.textRenderer.getWidth(text) - 8;
+        return client.getWindow().getGuiScaledWidth() - client.font.width(text) - 8;
     }
 
     private static boolean inside(double mx, double my, int x, int y, int width) {
