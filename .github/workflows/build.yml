@@ -1,4 +1,4 @@
-name: Build Blackjack Calculator
+name: Build Blackjack Calculator 26.2
 
 on:
   push:
@@ -10,21 +10,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Set up Java 21
+      - name: Set up Java 25
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '21'
-      - name: Set up Gradle 9.2.1
+          java-version: '25'
+      - name: Set up Gradle 9.5.1
         uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: '9.2.1'
+          gradle-version: '9.5.1'
       - name: Build mod
         run: gradle clean build --no-daemon --stacktrace
       - name: Verify production JAR
-        run: test -f build/libs/blackjack-calculator-1.21.11.jar
+        run: test -f build/libs/blackjack-calculator-26.2.jar
       - name: Upload mod JAR
         uses: actions/upload-artifact@v4
         with:
-          name: blackjack-calculator-1.21.11
-          path: build/libs/blackjack-calculator-1.21.11.jar
+          name: blackjack-calculator-26.2
+          path: build/libs/blackjack-calculator-26.2.jar
