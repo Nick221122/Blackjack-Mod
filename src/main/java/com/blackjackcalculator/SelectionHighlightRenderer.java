@@ -1,14 +1,13 @@
 package com.blackjackcalculator;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.DrawStyle;
-import net.minecraft.entity.decoration.ItemFrameEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.world.debug.gizmo.GizmoDrawing;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.gizmos.GizmoStyle;
+import net.minecraft.gizmos.Gizmos;
+import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.phys.AABB;
 
 /** Temporary full-area preview while choosing the second corner of a selection. */
 public final class SelectionHighlightRenderer implements ClientModInitializer {
@@ -19,28 +18,32 @@ public final class SelectionHighlightRenderer implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        WorldRenderEvents.AFTER_ENTITIES.register(SelectionHighlightRenderer::render);
+        LevelRenderEvents.BEFORE_GIZMOS.register(context -> render());
     }
 
-    private static void render(WorldRenderContext context) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.world == null || client.player == null) return;
-        ItemFrameEntity currentFrame = BlackjackCalculatorClient.findTargetFrame(client);
+    private static void render() {
+        Minecraft client = Minecraft.getInstance();
+        if (client.level == null || client.player == null) return;
+        ItemFrame currentFrame = BlackjackCalculatorClient.findTargetFrame(client);
         if (currentFrame == null) return;
         renderRole(client, BlackjackConfig.Role.HOST, currentFrame, HOST_STROKE, HOST_FILL);
         renderRole(client, BlackjackConfig.Role.VIEWER, currentFrame, VIEWER_STROKE, VIEWER_FILL);
     }
 
-    private static void renderRole(MinecraftClient client, BlackjackConfig.Role role, ItemFrameEntity currentFrame, int stroke, int fill) {
+    private static void renderRole(Minecraft client, BlackjackConfig.Role role, ItemFrame currentFrame, int stroke, int fill) {
         BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
         if (selection.firstKey() == null || selection.secondKey() != null) return;
         BlockPos a = BlackjackConfig.parseSelectionPos(selection.firstKey());
         if (a == null) return;
-        BlockPos b = currentFrame.getBlockPos();
-        Box box = new Box(Math.min(a.getX(), b.getX()) - 0.05D, Math.min(a.getY(), b.getY()) - 0.05D, Math.min(a.getZ(), b.getZ()) - 0.05D,
-                Math.max(a.getX(), b.getX()) + 1.05D, Math.max(a.getY(), b.getY()) + 1.05D, Math.max(a.getZ(), b.getZ()) + 1.05D);
-        try (var scope = client.newGizmoScope()) {
-            GizmoDrawing.box(box, DrawStyle.filledAndStroked(stroke, 3.0F, fill)).withLifespan(1).ignoreOcclusion();
-        }
+        BlockPos b = currentFrame.blockPosition();
+        AABB box = new AABB(
+                Math.min(a.getX(), b.getX()) - 0.05D,
+                Math.min(a.getY(), b.getY()) - 0.05D,
+                Math.min(a.getZ(), b.getZ()) - 0.05D,
+                Math.max(a.getX(), b.getX()) + 1.05D,
+                Math.max(a.getY(), b.getY()) + 1.05D,
+                Math.max(a.getZ(), b.getZ()) + 1.05D
+        );
+        Gizmos.cuboid(box, GizmoStyle.strokeAndFill(stroke, 3.0F, fill)).setAlwaysOnTop();
     }
 }
