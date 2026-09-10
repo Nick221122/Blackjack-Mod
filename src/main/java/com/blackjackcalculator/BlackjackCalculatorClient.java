@@ -14,10 +14,9 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.core.component.DataComponentTypes;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -29,7 +28,6 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static final String MOD_ID = "blackjackcalculator";
@@ -62,7 +60,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         if (!isDispenserOrDropperScreen(screen)) return;
         int buttonX = Math.max(4, (scaledWidth - 176) / 2 - 62);
         int buttonY = Math.max(4, (scaledHeight - 114) / 2 + 20);
-        Screens.getButtons(screen).add(Button.builder(Component.translatable("button.blackjackcalculator.scan"), button -> scanOpenContainer(client, screen)).bounds(buttonX, buttonY, 56, 20).build());
+        Screens.getWidgets(screen).add(Button.builder(Component.translatable("button.blackjackcalculator.scan"), button -> scanOpenContainer(client, screen)).bounds(buttonX, buttonY, 56, 20).build());
     }
 
     private static boolean isDispenserOrDropperScreen(Screen screen) {
@@ -99,7 +97,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     private static String mapIdSignature(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return null;
-        var mapId = stack.get(DataComponentTypes.MAP_ID);
+        var mapId = stack.get(DataComponents.MAP_ID);
         return mapId == null ? null : mapId.toString();
     }
 
@@ -131,7 +129,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         }
     }
 
-    /** Long-range selection raycast with a forgiving hitbox so distant frames are easier to select. */
     static ItemFrame findTargetFrame(Minecraft client) {
         Vec3 start = client.player.getEyePosition(1.0F);
         Vec3 end = start.add(client.player.getViewVector(1.0F).scale(SELECTION_RAY_DISTANCE));
@@ -189,24 +186,11 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     private static boolean isFrameInsideSelection(Minecraft client, ItemFrame frame, BlackjackConfig.Role role) {
         BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
-        BlockPos first = resolveSelectionPos(client, selection.firstKey());
-        BlockPos second = resolveSelectionPos(client, selection.secondKey());
+        BlockPos first = BlackjackConfig.parseSelectionPos(selection.firstKey());
+        BlockPos second = BlackjackConfig.parseSelectionPos(selection.secondKey());
         if (first == null || second == null) return false;
         BlockPos p = frame.blockPosition();
         return between(p.getX(), first.getX(), second.getX()) && between(p.getY(), first.getY(), second.getY()) && between(p.getZ(), first.getZ(), second.getZ());
-    }
-
-    private static BlockPos resolveSelectionPos(Minecraft client, String key) {
-        BlockPos pos = BlackjackConfig.parseSelectionPos(key);
-        if (pos != null) return pos;
-        if (key == null || client.level == null) return null;
-        try {
-            String uuidText = key.substring(key.lastIndexOf(':') + 1);
-            Entity entity = client.level.getEntity(UUID.fromString(uuidText));
-            return entity instanceof ItemFrame frame ? frame.blockPosition() : null;
-        } catch (Exception ignored) {
-            return null;
-        }
     }
 
     private static boolean between(int value, int a, int b) {
