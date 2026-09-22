@@ -4,6 +4,8 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -15,6 +17,7 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.text.Text;
@@ -26,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public final class BlackjackCalculatorClient implements ClientModInitializer {
+public final class BlackjackCalculatorClient {
     private static final String MOD_ID = "blackjackcalculator";
     private static final Identifier HUD_ID = Identifier.of(MOD_ID, "totals");
     private static final double SCAN_RADIUS = 256.0D;
@@ -38,6 +41,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static KeyBinding assignViewerKey;
     private static KeyBinding editHudKey;
     private static KeyBinding scanContainerKey;
+    private static boolean pendingContainerScan;
     private static int hostTotal, viewerTotal;
     private static boolean hostHasCards, viewerHasCards;
 
@@ -58,11 +62,44 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         return screen instanceof Generic3x3ContainerScreen || screen != null && (screen.getTitle().getString().equalsIgnoreCase("Dispenser") || screen.getTitle().getString().equalsIgnoreCase("Dropper"));
     }
 
+    static boolean isDispenserOrDropperBlock(BlockState state) {
+        return state != null && (state.isOf(Blocks.DISPENSER) || state.isOf(Blocks.DROPPER));
+    }
+
+    private static void requestContainerScan(MinecraftClient client) {
+        if (client.player == null || client.world == null) return;
+
+        if (isDispenserOrDropperScreen(client.currentScreen)) {
+            scanOpenContainer(client, client.currentScreen);
+            return;
+        }
+
+        if (!(client.crosshairTarget instanceof BlockHitResult hit)
+                || !isDispenserOrDropperBlock(client.world.getBlockState(hit.getBlockPos()))) {
+            client.player.sendMessage(Text.literal("Look at a Dispenser or Dropper while scanning."), true);
+            return;
+        }
+
+        if (client.interactionManager == null) {
+            client.player.sendMessage(Text.literal("Unable to open the Dispenser or Dropper for scanning."), true);
+            return;
+        }
+
+        pendingContainerScan = true;
+        client.interactionManager.interactBlock(client.player, Hand.MAIN_HAND, hit);
+    }
+
     private static void scanOpenContainer(MinecraftClient client, Screen screen) {
         if (client.player == null || !isDispenserOrDropperScreen(screen)) return;
         if (!(screen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?> handled)) return;
-        if (!(handled.getScreenHandler() instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler handler)) { client.player.sendMessage(Text.literal("This is not a Dispenser or Dropper."), true); return; }
-        if (!(client.crosshairTarget instanceof BlockHitResult)) { client.player.sendMessage(Text.literal("Look at the Dispenser or Dropper while scanning."), true); return; }
+        if (!(handled.getScreenHandler() instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler handler)) {
+            client.player.sendMessage(Text.literal("This is not a Dispenser or Dropper."), true);
+            return;
+        }
+        if (!(client.crosshairTarget instanceof BlockHitResult)) {
+            client.player.sendMessage(Text.literal("Look at the Dispenser or Dropper while scanning."), true);
+            return;
+        }
         Map<String, Integer> scanned = new java.util.LinkedHashMap<>();
         int occupied = 0;
         for (int slot = 0; slot < 9; slot++) {
@@ -70,9 +107,11 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             if (stack.isEmpty()) continue;
             String mapId = mapIdSignature(stack);
             if (mapId == null) continue;
-            scanned.put(mapId, SCAN_VALUES[slot]); occupied++;
+            scanned.put(mapId, SCAN_VALUES[slot]);
+            occupied++;
         }
-        BlackjackConfig.replaceSharedScan(scanned); BlackjackConfig.save(client);
+        BlackjackConfig.replaceSharedScan(scanned);
+        BlackjackConfig.save(client);
         client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s). Shared by Host and Viewer."), true);
     }
 
@@ -86,21 +125,33 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignHostKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.HOST);
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
-        while (scanContainerKey.wasPressed()) scanOpenContainer(client, client.currentScreen);
+        while (scanContainerKey.wasPressed()) requestContainerScan(client);
+
+        if (pendingContainerScan && isDispenserOrDropperScreen(client.currentScreen)) {
+            pendingContainerScan = false;
+            scanOpenContainer(client, client.currentScreen);
+        }
+
         updateTotals(client);
     }
 
     private static void selectCorner(MinecraftClient client, BlackjackConfig.Role role) {
         if (client.player == null || client.world == null) return;
         ItemFrameEntity frame = findTargetFrame(client);
-        if (frame == null) { client.player.sendMessage(Text.literal("Look directly at an item frame first."), true); return; }
+        if (frame == null) {
+            client.player.sendMessage(Text.literal("Look directly at an item frame first."), true);
+            return;
+        }
         BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
         String current = BlackjackConfig.selectionKey(frame);
         if (selection.firstKey() == null || selection.secondKey() != null) {
-            BlackjackConfig.setFirstSelection(role, current); BlackjackConfig.setSecondSelection(role, null); BlackjackConfig.save(client);
+            BlackjackConfig.setFirstSelection(role, current);
+            BlackjackConfig.setSecondSelection(role, null);
+            BlackjackConfig.save(client);
             client.player.sendMessage(Text.literal(roleName(role) + ": first corner selected."), true);
         } else {
-            BlackjackConfig.setSecondSelection(role, current); BlackjackConfig.save(client);
+            BlackjackConfig.setSecondSelection(role, current);
+            BlackjackConfig.save(client);
             client.player.sendMessage(Text.literal(roleName(role) + ": area saved until you select new corners."), true);
         }
     }
@@ -110,35 +161,57 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         var start = client.player.getCameraPosVec(1.0F);
         var end = start.add(client.player.getRotationVec(1.0F).multiply(SELECTION_RAY_DISTANCE));
         Box searchBox = new Box(start, end).expand(1.0D);
-        ItemFrameEntity best = null; double bestDistance = Double.MAX_VALUE;
+        ItemFrameEntity best = null;
+        double bestDistance = Double.MAX_VALUE;
         for (ItemFrameEntity frame : client.world.getEntitiesByClass(ItemFrameEntity.class, searchBox, f -> !f.isRemoved())) {
             var result = frame.getBoundingBox().expand(SELECTION_HIT_EXPANSION).raycast(start, end);
             if (result.isEmpty()) continue;
             double distance = result.get().squaredDistanceTo(start);
-            if (distance < bestDistance) { bestDistance = distance; best = frame; }
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = frame;
+            }
         }
         return best;
     }
 
-    private static String roleName(BlackjackConfig.Role role) { return role == BlackjackConfig.Role.HOST ? "Host" : "Viewer"; }
+    private static String roleName(BlackjackConfig.Role role) {
+        return role == BlackjackConfig.Role.HOST ? "Host" : "Viewer";
+    }
 
     private static void updateTotals(MinecraftClient client) {
-        if (client.player == null || client.world == null) { hostTotal = viewerTotal = 0; hostHasCards = viewerHasCards = false; return; }
+        if (client.player == null || client.world == null) {
+            hostTotal = viewerTotal = 0;
+            hostHasCards = viewerHasCards = false;
+            return;
+        }
         Box box = client.player.getBoundingBox().expand(SCAN_RADIUS);
         List<ItemFrameEntity> frames = client.world.getEntitiesByClass(ItemFrameEntity.class, box, frame -> !frame.isRemoved() && !frame.getHeldItemStack().isEmpty());
-        int hostFixed = 0, hostAces = 0, viewerFixed = 0, viewerAces = 0; boolean foundHost = false, foundViewer = false;
+        int hostFixed = 0, hostAces = 0, viewerFixed = 0, viewerAces = 0;
+        boolean foundHost = false, foundViewer = false;
         for (ItemFrameEntity frame : frames) {
             boolean inHost = isFrameInsideSelection(client, frame, BlackjackConfig.Role.HOST);
             boolean inViewer = isFrameInsideSelection(client, frame, BlackjackConfig.Role.VIEWER);
             BlackjackConfig.Role role = inHost && !inViewer ? BlackjackConfig.Role.HOST : inViewer && !inHost ? BlackjackConfig.Role.VIEWER : null;
             if (role == null) continue;
-            String mapId = mapIdSignature(frame.getHeldItemStack()); if (mapId == null) continue;
-            int value = BlackjackConfig.getScannedMapValue(mapId); if (value < 0) continue;
-            if (role == BlackjackConfig.Role.HOST) { foundHost = true; if (value == 11) hostAces++; else hostFixed += value; }
-            else { foundViewer = true; if (value == 11) viewerAces++; else viewerFixed += value; }
+            String mapId = mapIdSignature(frame.getHeldItemStack());
+            if (mapId == null) continue;
+            int value = BlackjackConfig.getScannedMapValue(mapId);
+            if (value < 0) continue;
+            if (role == BlackjackConfig.Role.HOST) {
+                foundHost = true;
+                if (value == 11) hostAces++;
+                else hostFixed += value;
+            } else {
+                foundViewer = true;
+                if (value == 11) viewerAces++;
+                else viewerFixed += value;
+            }
         }
-        hostHasCards = foundHost; viewerHasCards = foundViewer;
-        hostTotal = BlackjackScore.score(hostFixed, hostAces); viewerTotal = BlackjackScore.score(viewerFixed, viewerAces);
+        hostHasCards = foundHost;
+        viewerHasCards = foundViewer;
+        hostTotal = BlackjackScore.score(hostFixed, hostAces);
+        viewerTotal = BlackjackScore.score(viewerFixed, viewerAces);
     }
 
     private static boolean isFrameInsideSelection(MinecraftClient client, ItemFrameEntity frame, BlackjackConfig.Role role) {
@@ -158,10 +231,14 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             String uuidText = key.substring(key.lastIndexOf(':') + 1);
             Entity entity = client.world.getEntity(UUID.fromString(uuidText));
             return entity instanceof ItemFrameEntity frame ? frame.getBlockPos() : null;
-        } catch (Exception ignored) { return null; }
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
-    private static boolean between(int value, int a, int b) { return value >= Math.min(a, b) && value <= Math.max(a, b); }
+    private static boolean between(int value, int a, int b) {
+        return value >= Math.min(a, b) && value <= Math.max(a, b);
+    }
 
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
@@ -175,10 +252,14 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         int color = text.contains("BUST") ? 0xFFFF5555 : 0xFFFFFFFF;
         float scale = host ? BlackjackConfig.getHostScale() : BlackjackConfig.getViewerScale();
         int width = Math.round(client.textRenderer.getWidth(text) * scale);
-        int x = host ? BlackjackConfig.getHostX() : BlackjackConfig.getViewerX(), y = host ? BlackjackConfig.getHostY() : BlackjackConfig.getViewerY();
+        int x = host ? BlackjackConfig.getHostX() : BlackjackConfig.getViewerX();
+        int y = host ? BlackjackConfig.getHostY() : BlackjackConfig.getViewerY();
         if (!host && x < 0) x = client.getWindow().getScaledWidth() - width - 8;
-        context.getMatrices().pushMatrix(); context.getMatrices().translate(x, y); context.getMatrices().scale(scale, scale);
-        context.drawText(client.textRenderer, text, 0, 0, color, true); context.getMatrices().popMatrix();
+        context.getMatrices().pushMatrix();
+        context.getMatrices().translate(x, y);
+        context.getMatrices().scale(scale, scale);
+        context.drawText(client.textRenderer, text, 0, 0, color, true);
+        context.getMatrices().popMatrix();
     }
 
     public static int getHostTotal() { return hostTotal; }
