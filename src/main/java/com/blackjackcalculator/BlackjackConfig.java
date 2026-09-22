@@ -23,7 +23,8 @@ public final class BlackjackConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILE_NAME = "blackjackcalculator.json";
 
-    private static int hostX = 8, hostY = 8, viewerX = -1, viewerY = 8;
+    // Default HUD layout: Viewer on the left, Host on the right.
+    private static int hostX = -1, hostY = 8, viewerX = 8, viewerY = 8;
     private static float hostScale = 1.0f, viewerScale = 1.0f;
     private static String hostName = "Host", viewerName = "Viewer";
     private static Role activeRole = Role.HOST;
@@ -68,6 +69,7 @@ public final class BlackjackConfig {
         if (!root.has(key) || !root.get(key).isJsonObject()) return;
         for (var e : root.getAsJsonObject(key).entrySet()) try { target.put(e.getKey(), e.getValue().getAsInt()); } catch (Exception ignored) {}
     }
+
     private static void readContainerMap(JsonObject root, String key, Map<String, Map<Integer, Integer>> target) {
         if (!root.has(key) || !root.get(key).isJsonObject()) return;
         for (var ce : root.getAsJsonObject(key).entrySet()) {
@@ -110,12 +112,15 @@ public final class BlackjackConfig {
         Map<String, Integer> simple = role == Role.HOST ? HOST_SCANNED_ITEMS : VIEWER_SCANNED_ITEMS;
         simple.clear(); copy.forEach((slot, value) -> simple.put(Integer.toString(slot), value));
     }
+
     public static Map<Integer, Integer> getActiveContainerScan(Role role) {
         String key = getActiveContainer(role); if (key.isEmpty()) return Map.of();
         Map<Integer, Integer> map = (role == Role.HOST ? HOST_CONTAINER_SCANS : VIEWER_CONTAINER_SCANS).get(key);
         return map == null ? Map.of() : Map.copyOf(map);
     }
+
     public static String getActiveContainer(Role role) { return role == Role.HOST ? hostActiveContainer : viewerActiveContainer; }
+
     private static void setActiveContainer(Role role, String key) { if (role == Role.HOST) hostActiveContainer = key; else viewerActiveContainer = key; }
 
     public static String getHostName() { return hostName; }
@@ -137,5 +142,5 @@ public final class BlackjackConfig {
     public static int getViewerY() { return viewerY; }
     public static void setHostPosition(int x, int y) { hostX = x; hostY = y; }
     public static void setViewerPosition(int x, int y) { viewerX = x; viewerY = y; }
-    public static void resetPositions() { hostX = 8; hostY = 8; viewerX = -1; viewerY = 8; hostScale = 1.0f; viewerScale = 1.0f; }
+    public static void resetPositions() { hostX = -1; hostY = 8; viewerX = 8; viewerY = 8; hostScale = 1.0f; viewerScale = 1.0f; }
 }
