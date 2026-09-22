@@ -4,13 +4,10 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.Generic3x3ContainerScreen;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.option.KeyBinding;
@@ -55,30 +52,25 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         configKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.config", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_N, category));
         ClientTickEvents.END_CLIENT_TICK.register(BlackjackCalculatorClient::onClientTick);
         HudElementRegistry.addLast(HUD_ID, BlackjackCalculatorClient::renderHud);
-        ScreenEvents.AFTER_INIT.register(BlackjackCalculatorClient::onScreenInit);
     }
 
-    private static void onScreenInit(MinecraftClient client, Screen screen, int scaledWidth, int scaledHeight) {
-        if (!(screen instanceof Generic3x3ContainerScreen) || !isOpenedDispenserOrDropper(client)) return;
-        int left = (scaledWidth - 176) / 2;
-        int top = (scaledHeight - 114) / 2;
-        Screens.getButtons(screen).add(ButtonWidget.builder(Text.translatable("button.blackjackcalculator.scan"), button -> scanOpenContainer(client, screen))
-                .dimensions(Math.max(4, left - 62), top + 20, 56, 20).build());
-    }
+    private static void scanOpenContainer(MinecraftClient client) {
+        if (client.player == null || client.world == null || !(client.currentScreen instanceof HandledScreen<?> handled)) return;
+        if (!(handled.getScreenHandler() instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler handler)) {
+            client.player.sendMessage(Text.translatable("message.blackjackcalculator.not_container"), true);
+            return;
+        }
+        if (!(client.crosshairTarget instanceof BlockHitResult hit)) {
+            client.player.sendMessage(Text.translatable("message.blackjackcalculator.not_container"), true);
+            return;
+        }
 
-    private static boolean isOpenedDispenserOrDropper(MinecraftClient client) {
-        if (client.world == null || !(client.crosshairTarget instanceof BlockHitResult hit)) return false;
-        var state = client.world.getBlockState(hit.getBlockPos());
-        return state.isOf(Blocks.DISPENSER) || state.isOf(Blocks.DROPPER);
-    }
-
-    private static void scanOpenContainer(MinecraftClient client, Screen screen) {
-        if (client.player == null || client.world == null || !(screen instanceof HandledScreen<?> handled)) return;
-        if (!(handled.getScreenHandler() instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler handler)) return;
-        if (!(client.crosshairTarget instanceof BlockHitResult hit)) return;
         BlockPos pos = hit.getBlockPos();
         var state = client.world.getBlockState(pos);
-        if (!state.isOf(Blocks.DISPENSER) && !state.isOf(Blocks.DROPPER)) return;
+        if (!state.isOf(Blocks.DISPENSER) && !state.isOf(Blocks.DROPPER)) {
+            client.player.sendMessage(Text.translatable("message.blackjackcalculator.not_container"), true);
+            return;
+        }
 
         Map<Integer, Integer> scanned = new LinkedHashMap<>();
         for (int slot = 0; slot < 9; slot++) {
@@ -86,10 +78,15 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             Integer value = stack.isEmpty() ? null : parseCardValue(stack);
             if (value != null) scanned.put(slot + 1, value);
         }
+
         BlackjackConfig.saveContainerScan(BlackjackConfig.containerKey(client.world.getRegistryKey(), pos), activeScanRole, scanned);
         BlackjackConfig.save(client);
         updateTotals(client);
-        client.player.sendMessage(Text.translatable("message.blackjackcalculator.scanned", scanned.size(), activeScanRole == BlackjackConfig.Role.HOST ? BlackjackConfig.getHostName() : BlackjackConfig.getViewerName()), true);
+        client.player.sendMessage(Text.translatable(
+                "message.blackjackcalculator.scanned",
+                scanned.size(),
+                activeScanRole == BlackjackConfig.Role.HOST ? BlackjackConfig.getHostName() : BlackjackConfig.getViewerName()
+        ), true);
     }
 
     private static Integer parseCardValue(ItemStack stack) {
@@ -104,7 +101,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignRoleKey.wasPressed()) assignTargetRole(client);
         while (clearRoleKey.wasPressed()) clearTargetRole(client);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
-        while (scanScreenKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackScanScreen());
+        while (scanScreenKey.wasPressed()) scanOpenContainer(client);
         while (configKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackConfigScreen());
         updateTotals(client);
     }
@@ -117,25 +114,35 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         activeScanRole = role;
         BlackjackConfig.setActiveRole(role);
         BlackjackConfig.save(client);
-        if (client.player != null) client.player.sendMessage(Text.translatable("message.blackjackcalculator.active", role == BlackjackConfig.Role.HOST ? BlackjackConfig.getHostName() : BlackjackConfig.getViewerName()), true);
+        if (client.player != null) client.player.sendMessage(Text.translatable(
+                "message.blackjackcalculator.active",
+                role == BlackjackConfig.Role.HOST ? BlackjackConfig.getHostName() : BlackjackConfig.getViewerName()
+        ), true);
     }
 
     private static void assignTargetRole(MinecraftClient client) {
         if (client.player == null || client.world == null) return;
         if (!(client.crosshairTarget instanceof EntityHitResult hit) || !(hit.getEntity() instanceof ItemFrameEntity frame)) {
-            client.player.sendMessage(Text.translatable("message.blackjackcalculator.look_frame"), true); return;
+            client.player.sendMessage(Text.translatable("message.blackjackcalculator.look_frame"), true);
+            return;
         }
         BlackjackConfig.setRole(frame, client.world.getRegistryKey(), activeScanRole);
         BlackjackConfig.save(client);
+        client.player.sendMessage(Text.translatable(
+                "message.blackjackcalculator.assigned",
+                activeScanRole == BlackjackConfig.Role.HOST ? BlackjackConfig.getHostName() : BlackjackConfig.getViewerName()
+        ), true);
     }
 
     private static void clearTargetRole(MinecraftClient client) {
         if (client.player == null || client.world == null) return;
         if (!(client.crosshairTarget instanceof EntityHitResult hit) || !(hit.getEntity() instanceof ItemFrameEntity frame)) {
-            client.player.sendMessage(Text.translatable("message.blackjackcalculator.look_frame"), true); return;
+            client.player.sendMessage(Text.translatable("message.blackjackcalculator.look_frame"), true);
+            return;
         }
         BlackjackConfig.clearRole(frame, client.world.getRegistryKey());
         BlackjackConfig.save(client);
+        client.player.sendMessage(Text.translatable("message.blackjackcalculator.cleared"), true);
     }
 
     private static void updateTotals(MinecraftClient client) {
@@ -174,9 +181,9 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null || client.options.hudHidden) return;
-        drawTotal(context, client, BlackjackConfig.getHostName() + ": " + BlackjackScore.display(hostTotal, hostHasCards), true);
-        drawTotal(context, client, BlackjackConfig.getViewerName() + ": " + BlackjackScore.display(viewerTotal, viewerHasCards), false);
-        String active = "Active: " + (activeScanRole == BlackjackConfig.Role.HOST ? BlackjackConfig.getHostName() : BlackjackConfig.getViewerName());
+        drawTotal(context, client, "HOST • " + BlackjackConfig.getHostName() + ": " + BlackjackScore.display(hostTotal, hostHasCards), true);
+        drawTotal(context, client, "VIEWER • " + BlackjackConfig.getViewerName() + ": " + BlackjackScore.display(viewerTotal, viewerHasCards), false);
+        String active = "Active side: " + (activeScanRole == BlackjackConfig.Role.HOST ? "HOST • " + BlackjackConfig.getHostName() : "VIEWER • " + BlackjackConfig.getViewerName());
         context.drawText(client.textRenderer, active, (client.getWindow().getScaledWidth() - client.textRenderer.getWidth(active)) / 2, 8, 0xFFAAAAAA, true);
     }
 
@@ -184,10 +191,11 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         String display = text.toLowerCase();
         int color = display.contains("bust") ? 0xFFFF5555 : display.contains("blackjack") ? 0xFFFFD700 : 0xFFFFFFFF;
         float scale = host ? BlackjackConfig.getHostScale() : BlackjackConfig.getViewerScale();
-        int x = host ? BlackjackConfig.getHostX() : BlackjackConfig.getViewerX();
+        int configuredX = host ? BlackjackConfig.getHostX() : BlackjackConfig.getViewerX();
+        int x = configuredX;
         int y = host ? BlackjackConfig.getHostY() : BlackjackConfig.getViewerY();
         int width = Math.round(client.textRenderer.getWidth(text) * scale);
-        if (!host && x < 0) x = client.getWindow().getScaledWidth() - width - 8;
+        if (x < 0) x = client.getWindow().getScaledWidth() - width - 8;
         context.getMatrices().pushMatrix(); context.getMatrices().translate(x, y); context.getMatrices().scale(scale, scale);
         context.drawText(client.textRenderer, text, 0, 0, color, true); context.getMatrices().popMatrix();
     }
