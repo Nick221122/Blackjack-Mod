@@ -29,4 +29,10 @@ class BlackjackCalculatorClientTest {
         assertEquals(6, BlackjackCalculatorClient.scannedValueForSlot(4));
         assertEquals(10, BlackjackCalculatorClient.scannedValueForSlot(8));
     }
+
+    @Test
+    void resetHudResolvesHostToRightAndViewerToLeft() {
+        assertEquals(142, BlackjackCalculatorClient.resolveHudX(true, -1, 50, 200));
+        assertEquals(8, BlackjackCalculatorClient.resolveHudX(false, 8, 50, 200));
+    }
 }
