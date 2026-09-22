@@ -9,8 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class BlackjackConfigTest {
     @BeforeEach
     void setUp() {
-        BlackjackConfig.setHostName("Viewer");
-        BlackjackConfig.setViewerName("Host");
+        BlackjackConfig.setHostName("Host");
+        BlackjackConfig.setViewerName("Viewer");
     }
 
     @AfterEach
@@ -21,16 +21,16 @@ class BlackjackConfigTest {
 
     @Test
     void exposesSwappedDisplayNamesForHostAndViewer() {
-        assertEquals("Viewer", BlackjackConfig.getHostName());
-        assertEquals("Host", BlackjackConfig.getViewerName());
+        assertEquals("Host", BlackjackConfig.getHostName());
+        assertEquals("Viewer", BlackjackConfig.getViewerName());
     }
 
     @Test
     void savesNamesBackToTheirSwappedDisplaySlots() {
-        BlackjackConfig.setHostName("Viewer Slot");
-        BlackjackConfig.setViewerName("Host Slot");
+        BlackjackConfig.setHostName("Host Slot");
+        BlackjackConfig.setViewerName("Viewer Slot");
 
-        assertEquals("Viewer Slot", BlackjackConfig.getHostName());
-        assertEquals("Host Slot", BlackjackConfig.getViewerName());
+        assertEquals("Host Slot", BlackjackConfig.getHostName());
+        assertEquals("Viewer Slot", BlackjackConfig.getViewerName());
     }
 }
