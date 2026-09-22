@@ -40,8 +40,14 @@ public final class BlackjackHudEditorScreen extends Screen {
         addDrawableChild(viewerNameField);
 
         addDrawableChild(ButtonWidget.builder(Text.literal("Save names"), button -> saveNames()).dimensions(panelX, 120, 130, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Reset positions"), button -> BlackjackConfig.resetPositions()).dimensions(panelX, 145, 130, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Reset positions"), button -> resetPositionsKeepingNames()).dimensions(panelX, 145, 130, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close()).dimensions(panelX, 170, 130, 20).build());
+    }
+
+    private void resetPositionsKeepingNames() {
+        saveNames();
+        BlackjackConfig.resetPositions();
+        BlackjackConfig.save(MinecraftClient.getInstance());
     }
 
     private void saveNames() {
