@@ -27,6 +27,9 @@ public final class BlackjackScoreTest {
         if (!"VIEWER • Player: 20".equals(BlackjackCalculatorClient.formatHudLabel(BlackjackConfig.Role.VIEWER, "Player", 20, true))) {
             throw new AssertionError("Viewer HUD label failed");
         }
+        if (BlackjackHudEditorScreen.clampHudX(100, 80, 320) != 240) {
+            throw new AssertionError("HUD drag should keep the full label on screen");
+        }
         System.out.println("BlackjackScoreTest: PASS");
     }
 
