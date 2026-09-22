@@ -15,9 +15,7 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
@@ -39,7 +37,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static KeyBinding assignViewerKey;
     private static KeyBinding editHudKey;
     private static KeyBinding scanContainerKey;
-    private static boolean pendingContainerScan;
     private static int hostTotal, viewerTotal;
     private static boolean hostHasCards, viewerHasCards;
 
@@ -68,19 +65,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             return;
         }
 
-        if (!(client.crosshairTarget instanceof BlockHitResult hit)
-                || !ScanTarget.isDispenserOrDropper(client.world.getBlockState(hit.getBlockPos()))) {
-            client.player.sendMessage(Text.literal("Look at a Dispenser or Dropper while scanning."), true);
-            return;
-        }
-
-        if (client.interactionManager == null) {
-            client.player.sendMessage(Text.literal("Unable to open the Dispenser or Dropper for scanning."), true);
-            return;
-        }
-
-        pendingContainerScan = true;
-        client.interactionManager.interactBlock(client.player, Hand.MAIN_HAND, hit);
+        client.player.sendMessage(Text.literal("Open a Dispenser or Dropper before scanning."), true);
     }
 
     private static void scanOpenContainer(MinecraftClient client, Screen screen) {
@@ -120,11 +105,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
         while (scanContainerKey.wasPressed()) requestContainerScan(client);
-
-        if (pendingContainerScan && isDispenserOrDropperScreen(client.currentScreen)) {
-            pendingContainerScan = false;
-            scanOpenContainer(client, client.currentScreen);
-        }
 
         updateTotals(client);
     }
