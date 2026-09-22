@@ -10,6 +10,7 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         maven { url = 'https://maven.fabricmc.net/' }
+        maven { url = 'https://libraries.minecraft.net/' }
         mavenCentral()
     }
 }
