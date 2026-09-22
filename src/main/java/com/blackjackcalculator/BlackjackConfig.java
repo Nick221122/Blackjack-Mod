@@ -113,13 +113,17 @@ public final class BlackjackConfig {
     public static void setHostPosition(int x, int y) { hostX = x; hostY = y; }
     public static void setViewerPosition(int x, int y) { viewerX = x; viewerY = y; }
 
-    public static void resetHudDefaults() {
+    public static void resetPositions() {
         hostX = -1;
         hostY = 8;
         viewerX = 8;
         viewerY = 8;
         hostScale = 1.0f;
         viewerScale = 1.0f;
+    }
+
+    public static void resetHudDefaults() {
+        resetPositions();
         hostName = "Host";
         viewerName = "Viewer";
     }
