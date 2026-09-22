@@ -55,8 +55,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         scanContainerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.scan_container", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, category));
         ClientTickEvents.END_CLIENT_TICK.register(BlackjackCalculatorClient::onClientTick);
         ScreenEvents.BEFORE_INIT.register((client1, screen, scaledWidth, scaledHeight) -> {
-            ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, keyCode, scanCode, modifiers) -> {
-                if (scanContainerKey.matchesKey(keyCode, scanCode)) {
+            ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, context) -> {
+                if (scanContainerKey.matchesKey(context.getKeycode(), context.scancode())) {
                     scanOpenContainer(client1, screen1);
                 }
             });
