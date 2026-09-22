@@ -226,7 +226,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     }
 
     private static void drawTotal(DrawContext context, MinecraftClient client, String name, String score, boolean host) {
-        String text = name.isBlank() ? score : host ? name + " " + score : score + " " + name;
+        String text = name.isBlank() ? score : host ? score + " " + name : name + " " + score;
         int color = text.contains("BUST") ? 0xFFFF5555 : 0xFFFFFFFF;
         float scale = host ? BlackjackConfig.getHostScale() : BlackjackConfig.getViewerScale();
         int width = Math.round(client.textRenderer.getWidth(text) * scale);
