@@ -34,16 +34,16 @@ public final class BlackjackHudEditorScreen extends Screen {
         context.drawCenteredTextWithShadow(textRenderer,
                 Text.translatable("screen.blackjackcalculator.hud_editor.help"), width / 2, 18, 0xFFFFFFFF);
         if (client.player != null) {
-            drawPreview(context, client, "Host: " + BlackjackScore.display(BlackjackCalculatorClient.getHostTotal(), BlackjackCalculatorClient.hasHostCards()), true);
-            drawPreview(context, client, "Viewer: " + BlackjackScore.display(BlackjackCalculatorClient.getViewerTotal(), BlackjackCalculatorClient.hasViewerCards()), false);
+            drawPreview(context, client, BlackjackCalculatorClient.formatHudLabel(BlackjackConfig.Role.HOST, BlackjackConfig.getHostName(), BlackjackCalculatorClient.getHostTotal(), BlackjackCalculatorClient.hasHostCards()), BlackjackConfig.Role.HOST);
+            drawPreview(context, client, BlackjackCalculatorClient.formatHudLabel(BlackjackConfig.Role.VIEWER, BlackjackConfig.getViewerName(), BlackjackCalculatorClient.getViewerTotal(), BlackjackCalculatorClient.hasViewerCards()), BlackjackConfig.Role.VIEWER);
         }
         super.render(context, mouseX, mouseY, delta);
     }
 
-    private void drawPreview(DrawContext context, MinecraftClient client, String text, boolean host) {
-        float scale = host ? BlackjackConfig.getHostScale() : BlackjackConfig.getViewerScale();
-        int x = host ? BlackjackConfig.getHostX() : resolvedViewerX(client, text, scale);
-        int y = host ? BlackjackConfig.getHostY() : BlackjackConfig.getViewerY();
+    private void drawPreview(DrawContext context, MinecraftClient client, String text, BlackjackConfig.Role role) {
+        float scale = role == BlackjackConfig.Role.HOST ? BlackjackConfig.getHostScale() : BlackjackConfig.getViewerScale();
+        int x = resolvedX(client, text, role, scale);
+        int y = role == BlackjackConfig.Role.HOST ? BlackjackConfig.getHostY() : BlackjackConfig.getViewerY();
         int textWidth = Math.round(client.textRenderer.getWidth(text) * scale);
         context.fill(x - 4, y - 4, x + textWidth + 4, y + Math.round(14 * scale), 0x66000000);
         context.getMatrices().pushMatrix();
@@ -57,15 +57,16 @@ public final class BlackjackHudEditorScreen extends Screen {
     public boolean mouseClicked(Click click, boolean doubled) {
         if (click.button() != GLFW.GLFW_MOUSE_BUTTON_1) return super.mouseClicked(click, doubled);
         MinecraftClient client = MinecraftClient.getInstance();
-        String host = "Host: " + BlackjackScore.display(BlackjackCalculatorClient.getHostTotal(), BlackjackCalculatorClient.hasHostCards());
-        String viewer = "Viewer: " + BlackjackScore.display(BlackjackCalculatorClient.getViewerTotal(), BlackjackCalculatorClient.hasViewerCards());
-        if (inside(click.x(), click.y(), BlackjackConfig.getHostX(), BlackjackConfig.getHostY(), client.textRenderer.getWidth(host) * BlackjackConfig.getHostScale())) {
+        String host = BlackjackCalculatorClient.formatHudLabel(BlackjackConfig.Role.HOST, BlackjackConfig.getHostName(), BlackjackCalculatorClient.getHostTotal(), BlackjackCalculatorClient.hasHostCards());
+        String viewer = BlackjackCalculatorClient.formatHudLabel(BlackjackConfig.Role.VIEWER, BlackjackConfig.getViewerName(), BlackjackCalculatorClient.getViewerTotal(), BlackjackCalculatorClient.hasViewerCards());
+        int hostX = resolvedX(client, host, BlackjackConfig.Role.HOST, BlackjackConfig.getHostScale());
+        int viewerX = resolvedX(client, viewer, BlackjackConfig.Role.VIEWER, BlackjackConfig.getViewerScale());
+        if (inside(click.x(), click.y(), hostX, BlackjackConfig.getHostY(), client.textRenderer.getWidth(host) * BlackjackConfig.getHostScale())) {
             dragging = DragTarget.HOST;
-            dragOffsetX = (int) click.x() - BlackjackConfig.getHostX();
+            dragOffsetX = (int) click.x() - hostX;
             dragOffsetY = (int) click.y() - BlackjackConfig.getHostY();
             return true;
         }
-        int viewerX = resolvedViewerX(client, viewer, BlackjackConfig.getViewerScale());
         if (inside(click.x(), click.y(), viewerX, BlackjackConfig.getViewerY(), client.textRenderer.getWidth(viewer) * BlackjackConfig.getViewerScale())) {
             dragging = DragTarget.VIEWER;
             dragOffsetX = (int) click.x() - viewerX;
@@ -107,8 +108,8 @@ public final class BlackjackHudEditorScreen extends Screen {
         MinecraftClient.getInstance().setScreen(null);
     }
 
-    private int resolvedViewerX(MinecraftClient client, String text, float scale) {
-        int configured = BlackjackConfig.getViewerX();
+    private int resolvedX(MinecraftClient client, String text, BlackjackConfig.Role role, float scale) {
+        int configured = role == BlackjackConfig.Role.HOST ? BlackjackConfig.getHostX() : BlackjackConfig.getViewerX();
         if (configured >= 0) return configured;
         return client.getWindow().getScaledWidth() - Math.round(client.textRenderer.getWidth(text) * scale) - 8;
     }
