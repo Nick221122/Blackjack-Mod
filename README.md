@@ -16,7 +16,7 @@ Client-side Fabric mod for Minecraft Java 1.21.11.
 - Host and Viewer roles with completely independent saved state.
 - Item-frame role assignment without changing or reinterpreting the card value.
 - Persistent Host/Viewer names, frame assignments, scanned container assignments, HUD positions, and HUD scales.
-- HUD score display plus active-side indicator.
+- HUD score display with clearly labeled Host/Viewer sides and active-side indicator.
 - HUD position/size editor with reset support.
 - Scan review screen.
 - Dispenser/Dropper scanner that reads only the currently opened nine-slot container and never moves, consumes, or changes its items.
@@ -31,7 +31,7 @@ All controls can be changed in **Options → Controls → Key Binds → Blackjac
 | `J` | Assign the item frame under the crosshair to the active side |
 | `K` | Clear the item frame role under the crosshair |
 | `P` | Open the HUD position/size editor |
-| `O` | Open the scan review screen |
+| `O` | Scan the currently opened Dispenser/Dropper |
 | `N` | Open Host/Viewer naming configuration |
 
 ## Dispenser / Dropper scanning
