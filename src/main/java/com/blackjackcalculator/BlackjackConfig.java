@@ -98,10 +98,11 @@ public final class BlackjackConfig {
 
     public static int getScannedMapValue(String mapId) { Integer value = SHARED_SCANNED_MAPS.get(mapId); return value == null ? -1 : value; }
     public static void replaceSharedScan(Map<String, Integer> values) { SHARED_SCANNED_MAPS.clear(); SHARED_SCANNED_MAPS.putAll(values); }
-    public static String getHostName() { return hostName; }
-    public static String getViewerName() { return viewerName; }
-    public static void setHostName(String name) { hostName = name == null ? "" : name; }
-    public static void setViewerName(String name) { viewerName = name == null ? "" : name; }
+    /** Display names intentionally swap Host and Viewer while keeping their underlying roles unchanged. */
+    public static String getHostName() { return viewerName; }
+    public static String getViewerName() { return hostName; }
+    public static void setHostName(String name) { viewerName = name == null ? "" : name; }
+    public static void setViewerName(String name) { hostName = name == null ? "" : name; }
     public static float getHostScale() { return hostScale; }
     public static float getViewerScale() { return viewerScale; }
     public static void setHostScale(float scale) { hostScale = Math.max(0.5f, Math.min(2.0f, scale)); }
