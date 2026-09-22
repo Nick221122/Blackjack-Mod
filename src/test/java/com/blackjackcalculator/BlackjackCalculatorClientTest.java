@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BlackjackCalculatorClientTest {
     @Test
     void recognizesDispenserAndDropperBlocksAsScanTargets() {
-        assertTrue(BlackjackCalculatorClient.isDispenserOrDropperBlock(Blocks.DISPENSER.getDefaultState()));
+        assertTrue(ScanTarget.isDispenserOrDropper(Blocks.DISPENSER.getDefaultState()));
         assertTrue(BlackjackCalculatorClient.isDispenserOrDropperBlock(Blocks.DROPPER.getDefaultState()));
     }
 
