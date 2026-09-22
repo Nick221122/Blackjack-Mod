@@ -45,4 +45,14 @@ class BlackjackConfigTest {
         assertEquals(8, BlackjackConfig.getHostY());
         assertEquals(8, BlackjackConfig.getViewerY());
     }
+    @Test
+    void resetPositionsPreservesEditedDisplayNames() {
+        BlackjackConfig.setHostName("Dealer");
+        BlackjackConfig.setViewerName("Player");
+
+        BlackjackConfig.resetPositions();
+
+        assertEquals("Dealer", BlackjackConfig.getHostName());
+        assertEquals("Player", BlackjackConfig.getViewerName());
+    }
 }
