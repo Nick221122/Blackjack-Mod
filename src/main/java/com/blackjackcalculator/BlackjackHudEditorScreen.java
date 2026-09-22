@@ -11,7 +11,7 @@ import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
 /** HUD editor for independently positioning and naming Host and Viewer. */
-public final class BlackjackHudEditorScreen extends Screen {
+public final class BlackjackHudEditorScreen {
     private enum DragTarget { NONE, HOST, VIEWER }
 
     private DragTarget dragging = DragTarget.NONE;
@@ -40,14 +40,15 @@ public final class BlackjackHudEditorScreen extends Screen {
         addDrawableChild(viewerNameField);
 
         addDrawableChild(ButtonWidget.builder(Text.literal("Save names"), button -> saveNames()).dimensions(panelX, 120, 130, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Reset positions"), button -> resetPositionsKeepingNames()).dimensions(panelX, 145, 130, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Reset HUD"), button -> resetHud()).dimensions(panelX, 145, 130, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close()).dimensions(panelX, 170, 130, 20).build());
     }
 
-    private void resetPositionsKeepingNames() {
-        saveNames();
-        BlackjackConfig.resetPositions();
+    private void resetHud() {
+        BlackjackConfig.resetHudDefaults();
         BlackjackConfig.save(MinecraftClient.getInstance());
+        hostNameField.setText(BlackjackConfig.getHostName());
+        viewerNameField.setText(BlackjackConfig.getViewerName());
     }
 
     private void saveNames() {
@@ -142,7 +143,7 @@ public final class BlackjackHudEditorScreen extends Screen {
     @Override
     public boolean keyPressed(KeyInput input) {
         if (input.getKeycode() == GLFW.GLFW_KEY_R) {
-            BlackjackConfig.resetPositions();
+            BlackjackConfig.resetHudDefaults();
             return true;
         }
         if (input.getKeycode() == GLFW.GLFW_KEY_ESCAPE) {
