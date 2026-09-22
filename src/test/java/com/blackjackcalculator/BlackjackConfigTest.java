@@ -11,26 +11,38 @@ class BlackjackConfigTest {
     void setUp() {
         BlackjackConfig.setHostName("Host");
         BlackjackConfig.setViewerName("Viewer");
+        BlackjackConfig.resetPositions();
     }
 
     @AfterEach
     void tearDown() {
-        BlackjackConfig.setHostName("Viewer");
-        BlackjackConfig.setViewerName("Host");
+        BlackjackConfig.setHostName("Host");
+        BlackjackConfig.setViewerName("Viewer");
+        BlackjackConfig.resetPositions();
     }
 
     @Test
-    void exposesSwappedDisplayNamesForHostAndViewer() {
+    void exposesHostAndViewerDisplayNames() {
         assertEquals("Host", BlackjackConfig.getHostName());
         assertEquals("Viewer", BlackjackConfig.getViewerName());
     }
 
     @Test
-    void savesNamesBackToTheirSwappedDisplaySlots() {
+    void savesHostAndViewerNamesToTheirOwnDisplaySlots() {
         BlackjackConfig.setHostName("Host Slot");
         BlackjackConfig.setViewerName("Viewer Slot");
 
         assertEquals("Host Slot", BlackjackConfig.getHostName());
         assertEquals("Viewer Slot", BlackjackConfig.getViewerName());
+    }
+
+    @Test
+    void resetPositionsUsesViewerLeftAndHostRightDefaults() {
+        BlackjackConfig.resetPositions();
+
+        assertEquals(-1, BlackjackConfig.getHostX());
+        assertEquals(8, BlackjackConfig.getViewerX());
+        assertEquals(8, BlackjackConfig.getHostY());
+        assertEquals(8, BlackjackConfig.getViewerY());
     }
 }
