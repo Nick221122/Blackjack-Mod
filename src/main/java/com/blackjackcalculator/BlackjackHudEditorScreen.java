@@ -67,16 +67,11 @@ public final class BlackjackHudEditorScreen extends Screen {
             drawPreview(context, client, viewer, false);
         }
 
-        // The vanilla Screen renderer applies its own background/blur pass on modern Minecraft.
-        // This editor already renders its background itself; calling super.render() can trigger a
-        // second blur in the same frame and crash with "Can only blur once per frame".
+        // Do not call Screen.render(): modern Minecraft performs its own background/blur pass there.
+        // This editor supplies its own background, and a second blur in the same frame crashes.
         for (var drawable : drawables) {
-            if (drawable instanceof net.minecraft.client.gui.Drawable child) {
-                child.render(context, mouseX, mouseY, deltaTicks);
-            }
+            drawable.render(context, mouseX, mouseY, deltaTicks);
         }
-        if (hostNameField != null) hostNameField.render(context, mouseX, mouseY, deltaTicks);
-        if (viewerNameField != null) viewerNameField.render(context, mouseX, mouseY, deltaTicks);
     }
 
     private String formatPreview(String name, String score, boolean host) {
