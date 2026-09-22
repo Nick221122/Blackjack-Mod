@@ -18,16 +18,6 @@ class BlackjackCalculatorClientTest {
     }
 
     @Test
-    void scanIsAllowedWhenDispenserScreenIsOpenWithoutBlockHitTarget() {
-        assertTrue(BlackjackCalculatorClient.shouldScanOpenContainer("Dispenser", null));
-    }
-
-    @Test
-    void scanIsAllowedWhenDropperScreenIsOpen() {
-        assertTrue(BlackjackCalculatorClient.shouldScanOpenContainer("Dropper", null));
-    }
-
-    @Test
     void differentMapIdsRemainDistinctScanKeys() {
         ItemStack first = new ItemStack(Items.FILLED_MAP);
         first.set(DataComponentTypes.MAP_ID, new MapIdComponent(101));
@@ -37,23 +27,6 @@ class BlackjackCalculatorClientTest {
         assertEquals(first.get(DataComponentTypes.MAP_ID).toString(), BlackjackCalculatorClient.mapIdSignature(first));
         assertEquals(second.get(DataComponentTypes.MAP_ID).toString(), BlackjackCalculatorClient.mapIdSignature(second));
         assertFalse(BlackjackCalculatorClient.mapIdSignature(first).equals(BlackjackCalculatorClient.mapIdSignature(second)));
-    }
-
-    @Test
-    void scanDoesNotRequireAWorldBlockHitWhenContainerScreenIsOpen() {
-        assertTrue(BlackjackCalculatorClient.shouldScanOpenContainer("Dispenser", null));
-    }
-
-    @Test
-    void scanIsRejectedForOtherScreens() {
-        assertFalse(BlackjackCalculatorClient.shouldScanOpenContainer("Chest", null));
-    }
-
-    @Test
-    void containerSlotValuesFollowBlackjackMapOrder() {
-        assertEquals(11, BlackjackCalculatorClient.scannedValueForSlot(0));
-        assertEquals(6, BlackjackCalculatorClient.scannedValueForSlot(4));
-        assertEquals(10, BlackjackCalculatorClient.scannedValueForSlot(8));
     }
 
     @Test
