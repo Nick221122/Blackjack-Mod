@@ -12,10 +12,21 @@ public final class BlackjackScoreTest {
         check(22, BlackjackScore.score(21, 1));
         check(19, BlackjackScore.score(19, 0)); // 10 + 9
         check(21, BlackjackScore.score(10, 1)); // 10 + Ace = 21
-        if (!"BUST".equals(BlackjackScore.display(22, true))) throw new AssertionError("Bust display failed");
+        if (!"Bust".equals(BlackjackScore.display(22, true))) throw new AssertionError("Bust display failed");
 
         check(22, BlackjackScore.score(20, 2));
         check(13, BlackjackScore.score(12, 1));
+
+        BlackjackConfig.resetPositions();
+        if (BlackjackConfig.getViewerX() != 8 || BlackjackConfig.getHostX() != -1) {
+            throw new AssertionError("HUD defaults must place Viewer left and Host right");
+        }
+        if (!"HOST • Dealer: 18".equals(BlackjackCalculatorClient.formatHudLabel(BlackjackConfig.Role.HOST, "Dealer", 18, true))) {
+            throw new AssertionError("Host HUD label failed");
+        }
+        if (!"VIEWER • Player: 20".equals(BlackjackCalculatorClient.formatHudLabel(BlackjackConfig.Role.VIEWER, "Player", 20, true))) {
+            throw new AssertionError("Viewer HUD label failed");
+        }
         System.out.println("BlackjackScoreTest: PASS");
     }
 
@@ -23,4 +34,3 @@ public final class BlackjackScoreTest {
         if (expected != actual) throw new AssertionError("Expected " + expected + ", got " + actual);
     }
 }
-
