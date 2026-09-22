@@ -13,6 +13,7 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
@@ -54,12 +55,9 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         HudElementRegistry.addLast(HUD_ID, BlackjackCalculatorClient::renderHud);
     }
 
-    private static boolean isScannableContainerScreen(Screen screen) {
-        if (screen == null) return false;
-        String title = screen.getTitle().getString();
-        return title.equalsIgnoreCase("Dispenser")
-            || title.equalsIgnoreCase("Dropper")
-            || title.equalsIgnoreCase("Hopper");
+    private static boolean isScannableContainerHandler(net.minecraft.screen.ScreenHandler handler) {
+        return handler instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler
+            || handler instanceof HopperScreenHandler;
     }
 
     static boolean shouldScanOpenContainer(String screenTitle, Object crosshairTarget) {
@@ -77,6 +75,12 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         return 0;
     }
 
+    static int scanSlotCount(net.minecraft.screen.ScreenHandler handler) {
+        if (handler instanceof HopperScreenHandler) return 5;
+        if (handler instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler) return 9;
+        return 0;
+    }
+
     private static void requestContainerScan(MinecraftClient client) {
         if (client.player == null) return;
         scanOpenContainer(client, client.currentScreen);
@@ -86,18 +90,13 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         if (client.player == null || !isScannableContainerScreen(screen)) return;
         if (!(screen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?> handled)) return;
 
-        int slotCount = scanSlotCount(screen.getTitle().getString());
-        if (slotCount == 0) return;
-
         net.minecraft.screen.ScreenHandler handler = handled.getScreenHandler();
-        boolean validHandler = slotCount == 9
-            ? handler instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler
-            : handler instanceof HopperScreenHandler;
-        if (!validHandler) {
+        if (!isScannableContainerHandler(handler)) {
             client.player.sendMessage(Text.literal("This is not a supported scan container."), true);
             return;
         }
 
+        int slotCount = scanSlotCount(handler);
         Map<String, Integer> scanned = new java.util.LinkedHashMap<>();
         int occupied = 0;
         for (int slot = 0; slot < slotCount; slot++) {
@@ -119,10 +118,10 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         return SCAN_VALUES[slot];
     }
 
-    private static String mapIdSignature(ItemStack stack) {
+    static String mapIdSignature(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return null;
-        var mapId = stack.get(DataComponentTypes.MAP_ID);
-        return mapId == null ? null : mapId.toString();
+        MapIdComponent mapId = stack.get(DataComponentTypes.MAP_ID);
+        return mapId == null ? null : Integer.toString(mapId.id());
     }
 
     private static void onClientTick(MinecraftClient client) {
