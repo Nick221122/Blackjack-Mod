@@ -1,5 +1,6 @@
 package com.blackjackcalculator;
 
+import net.fabricmc.api.ClientModInitializer;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -7,6 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BlackjackCalculatorClientTest {
+    @Test
+    void clientInitializerImplementsFabricClientModInitializer() {
+        assertTrue(ClientModInitializer.class.isAssignableFrom(BlackjackCalculatorClient.class));
+    }
+
     @Test
     void scanIsAllowedWhenDispenserScreenIsOpenWithoutBlockHitTarget() {
         assertTrue(BlackjackCalculatorClient.shouldScanOpenContainer("Dispenser", null));
