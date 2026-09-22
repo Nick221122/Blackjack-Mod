@@ -59,6 +59,11 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             || screen.getTitle().getString().equalsIgnoreCase("Dropper"));
     }
 
+    static boolean shouldScanOpenContainer(String screenTitle, Object crosshairTarget) {
+        if (screenTitle == null) return false;
+        return screenTitle.equalsIgnoreCase("Dispenser") || screenTitle.equalsIgnoreCase("Dropper");
+    }
+
     private static void requestContainerScan(MinecraftClient client) {
         if (client.player == null) return;
         scanOpenContainer(client, client.currentScreen);
