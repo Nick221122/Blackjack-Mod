@@ -16,7 +16,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
@@ -69,15 +68,15 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         client.player.sendMessage(Text.literal("Open a Dispenser or Dropper before scanning."), true);
     }
 
+    static boolean shouldScanOpenContainer(Screen screen, Object crosshairTarget) {
+        return isDispenserOrDropperScreen(screen);
+    }
+
     private static void scanOpenContainer(MinecraftClient client, Screen screen) {
-        if (client.player == null || !isDispenserOrDropperScreen(screen)) return;
+        if (client.player == null || !shouldScanOpenContainer(screen, client.crosshairTarget)) return;
         if (!(screen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?> handled)) return;
         if (!(handled.getScreenHandler() instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler handler)) {
             client.player.sendMessage(Text.literal("This is not a Dispenser or Dropper."), true);
-            return;
-        }
-        if (!(client.crosshairTarget instanceof BlockHitResult)) {
-            client.player.sendMessage(Text.literal("Look at the Dispenser or Dropper while scanning."), true);
             return;
         }
         Map<String, Integer> scanned = new java.util.LinkedHashMap<>();
