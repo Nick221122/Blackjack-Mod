@@ -8,7 +8,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.Generic3x3ContainerScreen;
-import net.minecraft.screen.HopperScreenHandler;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.render.RenderTickCounter;
@@ -17,6 +16,7 @@ import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -55,62 +55,30 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         HudElementRegistry.addLast(HUD_ID, BlackjackCalculatorClient::renderHud);
     }
 
-    private static boolean isScannableContainerHandler(net.minecraft.screen.ScreenHandler handler) {
-        return handler instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler
-            || handler instanceof HopperScreenHandler;
-    }
-
-    static boolean shouldScanOpenContainer(String screenTitle, Object crosshairTarget) {
-        return screenTitle != null && (
-            screenTitle.equalsIgnoreCase("Dispenser")
-            || screenTitle.equalsIgnoreCase("Dropper")
-            || screenTitle.equalsIgnoreCase("Hopper")
-        );
-    }
-
-    static int scanSlotCount(String screenTitle) {
-        if (screenTitle == null) return 0;
-        if (screenTitle.equalsIgnoreCase("Hopper")) return 5;
-        if (screenTitle.equalsIgnoreCase("Dispenser") || screenTitle.equalsIgnoreCase("Dropper")) return 9;
-        return 0;
-    }
-
-    static int scanSlotCount(net.minecraft.screen.ScreenHandler handler) {
-        if (handler instanceof HopperScreenHandler) return 5;
-        if (handler instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler) return 9;
-        return 0;
-    }
-
-    private static void requestContainerScan(MinecraftClient client) {
-        if (client.player == null) return;
-        scanOpenContainer(client, client.currentScreen);
-    }
-
     private static void scanOpenContainer(MinecraftClient client, Screen screen) {
-        if (client.player == null || !isScannableContainerScreen(screen)) return;
+        if (client.player == null) return;
         if (!(screen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?> handled)) return;
-
-        net.minecraft.screen.ScreenHandler handler = handled.getScreenHandler();
-        if (!isScannableContainerHandler(handler)) {
-            client.player.sendMessage(Text.literal("This is not a supported scan container."), true);
+        if (!(handled.getScreenHandler() instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler handler)) {
+            client.player.sendMessage(Text.literal("This is not a Dispenser or Dropper."), true);
             return;
         }
-
-        int slotCount = scanSlotCount(handler);
+        if (!(client.crosshairTarget instanceof BlockHitResult)) {
+            client.player.sendMessage(Text.literal("Look at the Dispenser or Dropper while scanning."), true);
+            return;
+        }
         Map<String, Integer> scanned = new java.util.LinkedHashMap<>();
         int occupied = 0;
-        for (int slot = 0; slot < slotCount; slot++) {
+        for (int slot = 0; slot < 9; slot++) {
             ItemStack stack = handler.getSlot(slot).getStack();
             if (stack.isEmpty()) continue;
             String mapId = mapIdSignature(stack);
             if (mapId == null) continue;
-            scanned.put(mapId, scannedValueForSlot(slot));
+            scanned.put(mapId, SCAN_VALUES[slot]);
             occupied++;
         }
-
         BlackjackConfig.replaceSharedScan(scanned);
         BlackjackConfig.save(client);
-        client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s). Shared by Host and Viewer until the next scan."), true);
+        client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s). Shared by Host and Viewer."), true);
     }
 
     static int scannedValueForSlot(int slot) {
@@ -121,7 +89,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     static String mapIdSignature(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return null;
         MapIdComponent mapId = stack.get(DataComponentTypes.MAP_ID);
-        return mapId == null ? null : Integer.toString(mapId.id());
+        return mapId == null ? null : mapId.toString();
     }
 
     private static void onClientTick(MinecraftClient client) {
