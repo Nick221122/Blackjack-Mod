@@ -80,7 +80,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     }
 
     private static void scanOpenContainer(MinecraftClient client, Screen screen) {
-        if (client.player == null || !isScannableContainerScreen(screen)) return;
+        if (client.player == null || client.world == null) return;
         if (!(screen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?> handled)) return;
 
         var handler = handled.getScreenHandler();
@@ -94,6 +94,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             return;
         }
 
+        // Keep the original scan behavior: the scan is initiated from the open
+        // container and uses the same inventory slot ordering as the old button.
         Map<String, Integer> scanned = new java.util.LinkedHashMap<>();
         int occupied = 0;
         for (int slot = 0; slot < slotCount; slot++) {
@@ -104,6 +106,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             scanned.put(mapId, scannedValueForSlot(slot));
             occupied++;
         }
+
         BlackjackConfig.replaceSharedScan(scanned);
         BlackjackConfig.save(client);
         client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s). Shared by Host and Viewer."), true);
@@ -112,6 +115,10 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     static int scannedValueForSlot(int slot) {
         if (slot < 0 || slot >= SCAN_VALUES.length) return -1;
         return SCAN_VALUES[slot];
+    }
+
+    static boolean isScannedMapSignature(String mapId, Map<String, Integer> scanned) {
+        return mapId != null && scanned.containsKey(mapId);
     }
 
     private static String mapIdSignature(ItemStack stack) {
@@ -191,7 +198,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             String mapId = mapIdSignature(frame.getHeldItemStack());
             if (mapId == null) continue;
             int value = BlackjackConfig.getScannedMapValue(mapId);
-            if (value < 0) continue;
+            if (value < 0 || !isScannedMapSignature(mapId, java.util.Map.of(mapId, value))) continue;
             if (role == BlackjackConfig.Role.HOST) {
                 foundHost = true;
                 if (value == 11) hostAces++;
