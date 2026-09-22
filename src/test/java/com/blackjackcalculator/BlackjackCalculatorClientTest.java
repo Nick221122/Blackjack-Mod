@@ -41,6 +41,17 @@ class BlackjackCalculatorClientTest {
     }
 
     @Test
+    void resetHudRestoresDefaultHostAndViewerNames() {
+        BlackjackConfig.setHostName("Custom Host");
+        BlackjackConfig.setViewerName("Custom Viewer");
+
+        BlackjackConfig.resetHudDefaults();
+
+        assertEquals("Host", BlackjackConfig.getHostName());
+        assertEquals("Viewer", BlackjackConfig.getViewerName());
+    }
+
+    @Test
     void resetHudResolvesHostToRightAndViewerToLeft() {
         assertEquals(142, BlackjackCalculatorClient.resolveHudX(true, -1, 50, 200));
         assertEquals(8, BlackjackCalculatorClient.resolveHudX(false, 8, 50, 200));
