@@ -9,7 +9,6 @@ import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.Generic3x3ContainerScreen;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.render.RenderTickCounter;
@@ -88,11 +87,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         BlackjackConfig.replaceSharedScan(scanned);
         BlackjackConfig.save(client);
         client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s). Shared by Host and Viewer."), true);
-    }
-
-    static int scannedValueForSlot(int slot) {
-        if (slot < 0 || slot >= SCAN_VALUES.length) return -1;
-        return SCAN_VALUES[slot];
     }
 
     static String mapIdSignature(ItemStack stack) {
