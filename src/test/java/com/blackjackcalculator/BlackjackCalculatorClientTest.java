@@ -10,11 +10,11 @@ class BlackjackCalculatorClientTest {
     @Test
     void recognizesDispenserAndDropperBlocksAsScanTargets() {
         assertTrue(ScanTarget.isDispenserOrDropper(Blocks.DISPENSER.getDefaultState()));
-        assertTrue(BlackjackCalculatorClient.isDispenserOrDropperBlock(Blocks.DROPPER.getDefaultState()));
+        assertTrue(ScanTarget.isDispenserOrDropper(Blocks.DROPPER.getDefaultState()));
     }
 
     @Test
     void doesNotTreatOtherBlocksAsScanTargets() {
-        assertFalse(BlackjackCalculatorClient.isDispenserOrDropperBlock(Blocks.CHEST.getDefaultState()));
+        assertFalse(ScanTarget.isDispenserOrDropper(Blocks.CHEST.getDefaultState()));
     }
 }
