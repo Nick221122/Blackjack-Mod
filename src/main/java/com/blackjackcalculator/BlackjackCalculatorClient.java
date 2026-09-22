@@ -54,7 +54,11 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     }
 
     private static boolean isDispenserOrDropperScreen(Screen screen) {
-        return screen instanceof Generic3x3ContainerScreen || screen != null && (screen.getTitle().getString().equalsIgnoreCase("Dispenser") || screen.getTitle().getString().equalsIgnoreCase("Dropper"));
+        return screen instanceof Generic3x3ContainerScreen || screen != null && shouldScanOpenContainer(screen.getTitle().getString(), null);
+    }
+
+    static boolean shouldScanOpenContainer(String screenTitle, Object crosshairTarget) {
+        return "Dispenser".equalsIgnoreCase(screenTitle) || "Dropper".equalsIgnoreCase(screenTitle);
     }
 
     private static void requestContainerScan(MinecraftClient client) {
@@ -73,7 +77,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     }
 
     private static void scanOpenContainer(MinecraftClient client, Screen screen) {
-        if (client.player == null || !shouldScanOpenContainer(screen, client.crosshairTarget)) return;
+        if (client.player == null || !isDispenserOrDropperScreen(screen)) return;
         if (!(screen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?> handled)) return;
         if (!(handled.getScreenHandler() instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler handler)) {
             client.player.sendMessage(Text.literal("This is not a Dispenser or Dropper."), true);
