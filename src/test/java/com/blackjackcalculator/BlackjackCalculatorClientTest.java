@@ -29,6 +29,11 @@ class BlackjackCalculatorClientTest {
     }
 
     @Test
+    void hopperScanUsesFiveContainerSlots() {
+        assertEquals(5, BlackjackCalculatorClient.scanSlotCount("Hopper"));
+    }
+
+    @Test
     void scanDoesNotRequireAWorldBlockHitWhenContainerScreenIsOpen() {
         assertTrue(BlackjackCalculatorClient.shouldScanOpenContainer("Dispenser", null));
         assertTrue(BlackjackCalculatorClient.shouldScanOpenContainer("Hopper", null));
