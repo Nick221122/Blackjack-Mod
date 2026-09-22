@@ -1,0 +1,25 @@
+package com.blackjackcalculator;
+
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+class BlackjackConfigTest {
+    @Test
+    void exposesSwappedDisplayNamesForHostAndViewer() {
+        assertEquals("Viewer", BlackjackConfig.getHostName());
+        assertEquals("Host", BlackjackConfig.getViewerName());
+    }
+
+    @Test
+    void savesNamesBackToTheirSwappedDisplaySlots() {
+        BlackjackConfig.setHostName("Viewer Slot");
+        BlackjackConfig.setViewerName("Host Slot");
+
+        assertEquals("Viewer Slot", BlackjackConfig.getHostName());
+        assertEquals("Host Slot", BlackjackConfig.getViewerName());
+
+        BlackjackConfig.setHostName("Host");
+        BlackjackConfig.setViewerName("Viewer");
+    }
+}
