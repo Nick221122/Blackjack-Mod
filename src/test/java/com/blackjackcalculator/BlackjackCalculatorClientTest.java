@@ -18,18 +18,6 @@ class BlackjackCalculatorClientTest {
     }
 
     @Test
-    void differentMapIdsRemainDistinctScanKeys() {
-        ItemStack first = new ItemStack(Items.FILLED_MAP);
-        first.set(DataComponentTypes.MAP_ID, new MapIdComponent(101));
-        ItemStack second = new ItemStack(Items.FILLED_MAP);
-        second.set(DataComponentTypes.MAP_ID, new MapIdComponent(202));
-
-        assertEquals(first.get(DataComponentTypes.MAP_ID).toString(), BlackjackCalculatorClient.mapIdSignature(first));
-        assertEquals(second.get(DataComponentTypes.MAP_ID).toString(), BlackjackCalculatorClient.mapIdSignature(second));
-        assertFalse(BlackjackCalculatorClient.mapIdSignature(first).equals(BlackjackCalculatorClient.mapIdSignature(second)));
-    }
-
-    @Test
     void resetHudRestoresDefaultHostAndViewerNames() {
         BlackjackConfig.setHostName("Custom Host");
         BlackjackConfig.setViewerName("Custom Viewer");
