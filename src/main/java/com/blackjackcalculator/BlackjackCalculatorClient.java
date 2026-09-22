@@ -4,8 +4,6 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -62,10 +60,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         return screen instanceof Generic3x3ContainerScreen || screen != null && (screen.getTitle().getString().equalsIgnoreCase("Dispenser") || screen.getTitle().getString().equalsIgnoreCase("Dropper"));
     }
 
-    static boolean isDispenserOrDropperBlock(BlockState state) {
-        return state != null && (state.isOf(Blocks.DISPENSER) || state.isOf(Blocks.DROPPER));
-    }
-
     private static void requestContainerScan(MinecraftClient client) {
         if (client.player == null || client.world == null) return;
 
@@ -75,7 +69,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         }
 
         if (!(client.crosshairTarget instanceof BlockHitResult hit)
-                || !isDispenserOrDropperBlock(client.world.getBlockState(hit.getBlockPos()))) {
+                || !ScanTarget.isDispenserOrDropper(client.world.getBlockState(hit.getBlockPos()))) {
             client.player.sendMessage(Text.literal("Look at a Dispenser or Dropper while scanning."), true);
             return;
         }
