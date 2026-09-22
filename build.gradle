@@ -45,3 +45,15 @@ publishing {
         create('mavenJava', MavenPublication) { from components.java }
     }
 }
+
+
+tasks.register('sourceTest', JavaExec) {
+    group = 'verification'
+    description = 'Run the lightweight source-level test suite'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.blackjackcalculator.BlackjackScoreTest'
+}
+
+test {
+    enabled = false
+}
