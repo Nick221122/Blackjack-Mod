@@ -11,7 +11,7 @@ import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
 /** HUD editor for independently positioning and naming Host and Viewer. */
-public final class BlackjackHudEditorScreen {
+public final class BlackjackHudEditorScreen extends Screen {
     private enum DragTarget { NONE, HOST, VIEWER }
 
     private DragTarget dragging = DragTarget.NONE;
