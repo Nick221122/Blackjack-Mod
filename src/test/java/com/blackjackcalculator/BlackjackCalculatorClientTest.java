@@ -19,9 +19,13 @@ class BlackjackCalculatorClientTest {
     }
 
     @Test
-    void scanIsAllowedWhenDropperOrHopperScreenIsOpen() {
+    void scanIsAllowedWhenDropperScreenIsOpen() {
         assertTrue(BlackjackCalculatorClient.shouldScanOpenContainer("Dropper", null));
-        assertTrue(BlackjackCalculatorClient.shouldScanOpenContainer("Hopper", null));
+    }
+
+    @Test
+    void hopperIsNotPartOfTheOriginalDispenserDropperScan() {
+        assertFalse(BlackjackCalculatorClient.shouldScanOpenContainer("Hopper", null));
     }
 
     @Test
