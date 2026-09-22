@@ -172,6 +172,11 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         hostTotal = BlackjackScore.score(host[0], host[1]); viewerTotal = BlackjackScore.score(viewer[0], viewer[1]);
     }
 
+    public static String formatHudLabel(BlackjackConfig.Role role, String name, int total, boolean hasCards) {
+        String side = role == BlackjackConfig.Role.HOST ? "HOST" : "VIEWER";
+        return side + " • " + name + ": " + BlackjackScore.display(total, hasCards);
+    }
+
     private static int[] totalsFromContainer(Map<Integer, Integer> values) {
         int fixed = 0, aces = 0;
         for (int value : values.values()) { if (value == 1) aces++; else fixed += value; }
@@ -181,8 +186,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null || client.options.hudHidden) return;
-        drawTotal(context, client, "HOST • " + BlackjackConfig.getHostName() + ": " + BlackjackScore.display(hostTotal, hostHasCards), true);
-        drawTotal(context, client, "VIEWER • " + BlackjackConfig.getViewerName() + ": " + BlackjackScore.display(viewerTotal, viewerHasCards), false);
+        drawTotal(context, client, formatHudLabel(BlackjackConfig.Role.HOST, BlackjackConfig.getHostName(), hostTotal, hostHasCards), true);
+        drawTotal(context, client, formatHudLabel(BlackjackConfig.Role.VIEWER, BlackjackConfig.getViewerName(), viewerTotal, viewerHasCards), false);
         String active = "Active side: " + (activeScanRole == BlackjackConfig.Role.HOST ? "HOST • " + BlackjackConfig.getHostName() : "VIEWER • " + BlackjackConfig.getViewerName());
         context.drawText(client.textRenderer, active, (client.getWindow().getScaledWidth() - client.textRenderer.getWidth(active)) / 2, 8, 0xFFAAAAAA, true);
     }
