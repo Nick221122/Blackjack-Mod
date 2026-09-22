@@ -79,7 +79,13 @@ public final class BlackjackHudEditorScreen extends Screen {
     @Override
     public boolean mouseDragged(Click click, double offsetX, double offsetY) {
         if (click.button() != GLFW.GLFW_MOUSE_BUTTON_1 || dragging == DragTarget.NONE) return false;
-        int x = clamp((int) click.x() - dragOffsetX, 2, width - 2);
+        MinecraftClient client = MinecraftClient.getInstance();
+        String text = dragging == DragTarget.HOST
+                ? BlackjackCalculatorClient.formatHudLabel(BlackjackConfig.Role.HOST, BlackjackConfig.getHostName(), BlackjackCalculatorClient.getHostTotal(), BlackjackCalculatorClient.hasHostCards())
+                : BlackjackCalculatorClient.formatHudLabel(BlackjackConfig.Role.VIEWER, BlackjackConfig.getViewerName(), BlackjackCalculatorClient.getViewerTotal(), BlackjackCalculatorClient.hasViewerCards());
+        float scale = dragging == DragTarget.HOST ? BlackjackConfig.getHostScale() : BlackjackConfig.getViewerScale();
+        int textWidth = Math.round(client.textRenderer.getWidth(text) * scale);
+        int x = clampHudX((int) click.x() - dragOffsetX, textWidth, width);
         int y = clamp((int) click.y() - dragOffsetY, 2, height - 20);
         if (dragging == DragTarget.HOST) BlackjackConfig.setHostPosition(x, y); else BlackjackConfig.setViewerPosition(x, y);
         return true;
@@ -117,5 +123,8 @@ public final class BlackjackHudEditorScreen extends Screen {
     private static boolean inside(double mx, double my, int x, int y, double w) {
         return mx >= x - 6 && mx <= x + w + 6 && my >= y - 6 && my <= y + 18;
     }
-    private static int clamp(int value, int min, int max) { return Math.max(min, Math.min(max, value)); }
+    public static int clampHudX(int value, int textWidth, int screenWidth) {
+        int max = Math.max(2, screenWidth - textWidth - 2);
+        return Math.max(2, Math.min(max, value));
+    }
 }
