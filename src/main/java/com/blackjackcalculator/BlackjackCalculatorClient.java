@@ -117,10 +117,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         return SCAN_VALUES[slot];
     }
 
-    static boolean isScannedMapSignature(String mapId, Map<String, Integer> scanned) {
-        return mapId != null && scanned.containsKey(mapId);
-    }
-
     private static String mapIdSignature(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return null;
         var mapId = stack.get(DataComponentTypes.MAP_ID);
@@ -198,7 +194,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             String mapId = mapIdSignature(frame.getHeldItemStack());
             if (mapId == null) continue;
             int value = BlackjackConfig.getScannedMapValue(mapId);
-            if (value < 0 || !isScannedMapSignature(mapId, java.util.Map.of(mapId, value))) continue;
+            if (value < 0) continue;
             if (role == BlackjackConfig.Role.HOST) {
                 foundHost = true;
                 if (value == 11) hostAces++;
