@@ -86,7 +86,7 @@ public final class BlackjackHudEditorScreen extends Screen {
         float scale = dragging == DragTarget.HOST ? BlackjackConfig.getHostScale() : BlackjackConfig.getViewerScale();
         int textWidth = Math.round(client.textRenderer.getWidth(text) * scale);
         int x = clampHudX((int) click.x() - dragOffsetX, textWidth, width);
-        int y = clamp((int) click.y() - dragOffsetY, 2, height - 20);
+        int y = Math.max(2, Math.min(height - 20, (int) click.y() - dragOffsetY));
         if (dragging == DragTarget.HOST) BlackjackConfig.setHostPosition(x, y); else BlackjackConfig.setViewerPosition(x, y);
         return true;
     }
