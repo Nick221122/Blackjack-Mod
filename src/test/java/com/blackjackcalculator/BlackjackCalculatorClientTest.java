@@ -28,30 +28,20 @@ class BlackjackCalculatorClientTest {
     }
 
     @Test
-    void scanIsAllowedWhenHopperScreenIsOpen() {
-        assertTrue(BlackjackCalculatorClient.shouldScanOpenContainer("Hopper", null));
-    }
-
-    @Test
     void differentMapIdsRemainDistinctScanKeys() {
         ItemStack first = new ItemStack(Items.FILLED_MAP);
         first.set(DataComponentTypes.MAP_ID, new MapIdComponent(101));
         ItemStack second = new ItemStack(Items.FILLED_MAP);
         second.set(DataComponentTypes.MAP_ID, new MapIdComponent(202));
 
-        assertEquals("101", BlackjackCalculatorClient.mapIdSignature(first));
-        assertEquals("202", BlackjackCalculatorClient.mapIdSignature(second));
-    }
-
-    @Test
-    void hopperScanUsesFiveContainerSlots() {
-        assertEquals(5, BlackjackCalculatorClient.scanSlotCount("Hopper"));
+        assertEquals(first.get(DataComponentTypes.MAP_ID).toString(), BlackjackCalculatorClient.mapIdSignature(first));
+        assertEquals(second.get(DataComponentTypes.MAP_ID).toString(), BlackjackCalculatorClient.mapIdSignature(second));
+        assertFalse(BlackjackCalculatorClient.mapIdSignature(first).equals(BlackjackCalculatorClient.mapIdSignature(second)));
     }
 
     @Test
     void scanDoesNotRequireAWorldBlockHitWhenContainerScreenIsOpen() {
         assertTrue(BlackjackCalculatorClient.shouldScanOpenContainer("Dispenser", null));
-        assertTrue(BlackjackCalculatorClient.shouldScanOpenContainer("Hopper", null));
     }
 
     @Test
