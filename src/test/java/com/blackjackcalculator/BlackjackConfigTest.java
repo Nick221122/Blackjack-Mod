@@ -9,14 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class BlackjackConfigTest {
     @BeforeEach
     void setUp() {
-        BlackjackConfig.setHostName("Host");
-        BlackjackConfig.setViewerName("Viewer");
+        BlackjackConfig.setHostName("Viewer");
+        BlackjackConfig.setViewerName("Host");
     }
 
     @AfterEach
     void tearDown() {
-        BlackjackConfig.setHostName("Host");
-        BlackjackConfig.setViewerName("Viewer");
+        BlackjackConfig.setHostName("Viewer");
+        BlackjackConfig.setViewerName("Host");
     }
 
     @Test
