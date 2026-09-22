@@ -8,6 +8,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.Generic3x3ContainerScreen;
+import net.minecraft.screen.HopperScreenHandler;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.render.RenderTickCounter;
@@ -53,15 +54,27 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         HudElementRegistry.addLast(HUD_ID, BlackjackCalculatorClient::renderHud);
     }
 
-    private static boolean isDispenserOrDropperScreen(Screen screen) {
-        return screen instanceof Generic3x3ContainerScreen
-            || screen != null && (screen.getTitle().getString().equalsIgnoreCase("Dispenser")
-            || screen.getTitle().getString().equalsIgnoreCase("Dropper"));
+    private static boolean isScannableContainerScreen(Screen screen) {
+        if (screen == null) return false;
+        String title = screen.getTitle().getString();
+        return title.equalsIgnoreCase("Dispenser")
+            || title.equalsIgnoreCase("Dropper")
+            || title.equalsIgnoreCase("Hopper");
     }
 
     static boolean shouldScanOpenContainer(String screenTitle, Object crosshairTarget) {
-        if (screenTitle == null) return false;
-        return screenTitle.equalsIgnoreCase("Dispenser") || screenTitle.equalsIgnoreCase("Dropper");
+        return screenTitle != null && (
+            screenTitle.equalsIgnoreCase("Dispenser")
+            || screenTitle.equalsIgnoreCase("Dropper")
+            || screenTitle.equalsIgnoreCase("Hopper")
+        );
+    }
+
+    static int scanSlotCount(String screenTitle) {
+        if (screenTitle == null) return 0;
+        if (screenTitle.equalsIgnoreCase("Hopper")) return 5;
+        if (screenTitle.equalsIgnoreCase("Dispenser") || screenTitle.equalsIgnoreCase("Dropper")) return 9;
+        return 0;
     }
 
     private static void requestContainerScan(MinecraftClient client) {
@@ -70,20 +83,24 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     }
 
     private static void scanOpenContainer(MinecraftClient client, Screen screen) {
-        if (client.player == null || !isDispenserOrDropperScreen(screen)) return;
+        if (client.player == null || !isScannableContainerScreen(screen)) return;
         if (!(screen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?> handled)) return;
-        if (!(handled.getScreenHandler() instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler handler)) {
-            client.player.sendMessage(Text.literal("This is not a Dispenser or Dropper."), true);
-            return;
-        }
-        if (!(client.crosshairTarget instanceof net.minecraft.util.hit.BlockHitResult)) {
-            client.player.sendMessage(Text.literal("Look at the Dispenser or Dropper while scanning."), true);
+
+        int slotCount = scanSlotCount(screen.getTitle().getString());
+        if (slotCount == 0) return;
+
+        net.minecraft.screen.ScreenHandler handler = handled.getScreenHandler();
+        boolean validHandler = slotCount == 9
+            ? handler instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler
+            : handler instanceof HopperScreenHandler;
+        if (!validHandler) {
+            client.player.sendMessage(Text.literal("This is not a supported scan container."), true);
             return;
         }
 
         Map<String, Integer> scanned = new java.util.LinkedHashMap<>();
         int occupied = 0;
-        for (int slot = 0; slot < 9; slot++) {
+        for (int slot = 0; slot < slotCount; slot++) {
             ItemStack stack = handler.getSlot(slot).getStack();
             if (stack.isEmpty()) continue;
             String mapId = mapIdSignature(stack);
