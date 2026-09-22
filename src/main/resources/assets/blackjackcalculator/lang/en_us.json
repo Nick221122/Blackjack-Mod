@@ -6,7 +6,6 @@
   "key.blackjackcalculator.edit_hud": "Edit HUD Position/Size",
   "key.blackjackcalculator.scan_screen": "Scan Open Dispenser/Dropper",
   "key.blackjackcalculator.config": "Open Host/Viewer Configuration",
-  "button.blackjackcalculator.scan": "Scan",
   "button.blackjackcalculator.switch": "Switch Active Side",
   "button.blackjackcalculator.host_smaller": "Host -",
   "button.blackjackcalculator.host_larger": "Host +",
