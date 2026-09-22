@@ -29,6 +29,12 @@ class BlackjackCalculatorClientTest {
     }
 
     @Test
+    void scanDoesNotRequireAWorldBlockHitWhenContainerScreenIsOpen() {
+        assertTrue(BlackjackCalculatorClient.shouldScanOpenContainer("Dispenser", null));
+        assertTrue(BlackjackCalculatorClient.shouldScanOpenContainer("Hopper", null));
+    }
+
+    @Test
     void scanIsRejectedForOtherScreens() {
         assertFalse(BlackjackCalculatorClient.shouldScanOpenContainer("Chest", null));
     }
