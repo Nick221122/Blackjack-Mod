@@ -1,6 +1,10 @@
 package com.blackjackcalculator;
 
 import net.fabricmc.api.ClientModInitializer;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.MapIdComponent;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,6 +30,17 @@ class BlackjackCalculatorClientTest {
     @Test
     void scanIsAllowedWhenHopperScreenIsOpen() {
         assertTrue(BlackjackCalculatorClient.shouldScanOpenContainer("Hopper", null));
+    }
+
+    @Test
+    void differentMapIdsRemainDistinctScanKeys() {
+        ItemStack first = new ItemStack(Items.FILLED_MAP);
+        first.set(DataComponentTypes.MAP_ID, new MapIdComponent(101));
+        ItemStack second = new ItemStack(Items.FILLED_MAP);
+        second.set(DataComponentTypes.MAP_ID, new MapIdComponent(202));
+
+        assertEquals("101", BlackjackCalculatorClient.mapIdSignature(first));
+        assertEquals("202", BlackjackCalculatorClient.mapIdSignature(second));
     }
 
     @Test
