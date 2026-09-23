@@ -1,7 +1,7 @@
 {
   "key.category.blackjackcalculator.controls": "Blackjack Calculator",
-  "key.blackjackcalculator.assign_host": "Select Item Frame as Host",
-  "key.blackjackcalculator.assign_viewer": "Select Item Frame as Viewer",
+  "key.blackjackcalculator.assign_host": "Select Host Area (Item Frames)",
+  "key.blackjackcalculator.assign_viewer": "Select Viewer Area (Item Frames)",
   "key.blackjackcalculator.edit_hud": "Edit HUD Positions",
   "button.blackjackcalculator.scan": "Scan"
 }
