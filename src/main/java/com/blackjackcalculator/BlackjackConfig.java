@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.util.math.BlockPos;
 
