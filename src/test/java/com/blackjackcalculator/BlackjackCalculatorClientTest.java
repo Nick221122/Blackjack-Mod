@@ -13,6 +13,15 @@ class BlackjackCalculatorClientTest {
     }
 
     @Test
+    void toggleIsBlockedOnlyWhenASelectedAreaContainsAFilledFrame() {
+        assertTrue(BlackjackCalculatorClient.shouldBlockMapSimulationToggle(true, false, true));
+        assertTrue(BlackjackCalculatorClient.shouldBlockMapSimulationToggle(false, true, true));
+        assertTrue(BlackjackCalculatorClient.shouldBlockMapSimulationToggle(true, true, true));
+        assertTrue(!BlackjackCalculatorClient.shouldBlockMapSimulationToggle(false, false, true));
+        assertTrue(!BlackjackCalculatorClient.shouldBlockMapSimulationToggle(true, false, false));
+    }
+
+    @Test
     void resetHudRestoresDefaultHostAndViewerNames() {
         BlackjackConfig.setHostName("Custom Host");
         BlackjackConfig.setViewerName("Custom Viewer");
