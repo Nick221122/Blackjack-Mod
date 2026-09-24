@@ -104,7 +104,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignHostKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.HOST);
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
-        MapSimulationHud.resetHeartSuppression();
         boolean rPressed = GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
         if (isNewMapSimulationKeyPress(rPressed, mapSimulationKeyDown)
                 && !isMapSimulationToggleBlocked(hasFilledItemFrame(client))) {
