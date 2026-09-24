@@ -8,7 +8,7 @@ import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Screen;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.Generic3x3ContainerScreen;
 import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
