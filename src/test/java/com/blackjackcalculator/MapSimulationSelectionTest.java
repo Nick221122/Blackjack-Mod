@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -53,5 +54,13 @@ class MapSimulationSelectionTest {
         assertEquals(9, MapSimulationSelection.selectMappedValue(10, mapping, fakeValues));
     }
 
+    @Test
+    void simulationOnlyAppliesToMapIdsInsideTheSelectedAreas() {
+        Set<Integer> selectedMapIds = Set.of(10, 30);
 
+        assertEquals(true, MapSimulationStore.shouldSimulateMap(true, selectedMapIds, 10));
+        assertEquals(true, MapSimulationStore.shouldSimulateMap(true, selectedMapIds, 30));
+        assertEquals(false, MapSimulationStore.shouldSimulateMap(true, selectedMapIds, 20));
+        assertEquals(false, MapSimulationStore.shouldSimulateMap(false, selectedMapIds, 10));
+    }
 }
