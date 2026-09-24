@@ -41,7 +41,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static KeyBinding assignViewerKey;
     private static KeyBinding editHudKey;
     private static KeyBinding scanContainerKey;
-    private static KeyBinding toggleMapSimulationKey;
     private static int hostTotal, viewerTotal;
     private static boolean hostHasCards, viewerHasCards;
     private static boolean mapSimulationKeyDown;
@@ -55,7 +54,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         assignViewerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_viewer", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_U, category));
         editHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.edit_hud", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_P, category));
         scanContainerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.scan_container", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, category));
-        toggleMapSimulationKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.toggle_simulation", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, category));
         ClientTickEvents.END_CLIENT_TICK.register(BlackjackCalculatorClient::onClientTick);
         ScreenEvents.BEFORE_INIT.register((client1, screen, scaledWidth, scaledHeight) -> {
             ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, context) -> {
