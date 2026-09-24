@@ -3,6 +3,7 @@ package com.blackjackcalculator.mixin;
 import com.blackjackcalculator.BlackjackCalculatorClient;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ItemFrameEntityRendererMixinAccessTest {
@@ -14,5 +15,6 @@ class ItemFrameEntityRendererMixinAccessTest {
     @Test
     void worldMapLookupUsesTheFakeStateWhenSimulationProvidesOne() {
         assertTrue(ClientWorldMixin.shouldUseSimulationState(true));
+        assertFalse(ClientWorldMixin.shouldUseSimulationState(false));
     }
 }
