@@ -8,11 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MapSimulationToggleTest {
     @Test
     void blocksToggleWhileLookingAtAnItemFrame() {
-        assertTrue(BlackjackCalculatorClient.canToggleMapSimulation(false));
+        assertTrue(BlackjackCalculatorClient.isMapSimulationToggleBlocked(true));
     }
 
     @Test
     void allowsToggleAfterLookingAwayFromAnItemFrame() {
-        assertFalse(BlackjackCalculatorClient.canToggleMapSimulation(true));
+        assertFalse(BlackjackCalculatorClient.isMapSimulationToggleBlocked(false));
     }
 }
