@@ -9,20 +9,21 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.map.MapState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 @Mixin(targets = "net.minecraft.client.render.MapRenderer")
 public abstract class MapRendererMixin {
-    @ModifyArg(
+    @ModifyVariable(
             method = "update",
             at = @At("HEAD"),
-            index = 1
+            argsOnly = true,
+            ordinal = 1
     )
     private MapState blackjack$replaceMapState(MapState actualState) {
         ItemFrameEntity frame = MapSimulationRenderContext.currentFrame();
         if (!MapSimulationStore.isEnabled()
-                || !BlackjackCalculatorClient.isSelectedMapFrame(frame)
-                || frame == null) {
+                || frame == null
+                || !BlackjackCalculatorClient.isSelectedMapFrame(frame)) {
             return actualState;
         }
 
