@@ -25,7 +25,7 @@ All keybinds appear under Options → Controls → Key Binds → Blackjack Calcu
 
 ## Map simulation
 
-R toggles a client-only simulation mode.
+R toggles a client-only simulation mode. The current build does not use the incompatible legacy MapRenderer mixin that caused startup crashes on Minecraft 1.21.11.
 
 - Item-frame map visuals in the selected Host/Viewer areas can use a simulated scanned map representation.
 - Counting uses the fake value corresponding to the simulated map when one exists.
