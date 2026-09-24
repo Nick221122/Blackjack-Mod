@@ -63,6 +63,16 @@ public final class MapSimulationSelection {
         return knownMapIds.get((index + 1) % knownMapIds.size());
     }
 
+    /** Returns the fake card value belonging to the simulated map selected for an actual map. */
+    public static Integer selectMappedValue(
+            int actualMapId,
+            Map<Integer, Integer> mapping,
+            Map<Integer, Integer> fakeValues
+    ) {
+        Integer mappedId = selectMappedDisplayId(actualMapId, mapping);
+        return mappedId == null || fakeValues == null ? null : fakeValues.get(mappedId);
+    }
+
     /** Returns the simulated map id for an already-built simulation mapping. */
     public static Integer selectMappedDisplayId(int actualMapId, Map<Integer, Integer> mapping) {
         if (mapping == null) return null;
