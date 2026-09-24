@@ -10,4 +10,9 @@ class ItemFrameEntityRendererMixinAccessTest {
     void rendererMixinCanUseTheSelectedFrameSimulationPredicate() {
         assertTrue(BlackjackCalculatorClient.shouldSimulateSelectedFrame(true, true));
     }
+
+    @Test
+    void worldMapLookupUsesTheFakeStateWhenSimulationProvidesOne() {
+        assertTrue(ClientWorldMixin.shouldUseSimulationState(true));
+    }
 }
