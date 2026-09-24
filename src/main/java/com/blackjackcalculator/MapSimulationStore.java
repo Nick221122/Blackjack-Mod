@@ -53,11 +53,11 @@ public final class MapSimulationStore {
     /** Returns the fake card value that corresponds to the simulated map shown for this frame. */
     public static Integer resolveValue(MapIdComponent actualMapId) {
         if (!enabled || actualMapId == null) return null;
-        return MapSimulationSelection.selectMappedValue(
-                actualMapId.id(),
-                SIMULATION_MAPPING,
-                BlackjackConfig.getScannedMapValuesById()
-        );
+        Integer simulatedMapId = MapSimulationSelection.selectMappedDisplayId(
+                actualMapId.id(), SIMULATION_MAPPING);
+        if (simulatedMapId == null) return null;
+        int value = BlackjackConfig.getScannedMapValue(simulatedMapId);
+        return value < 0 ? null : value;
     }
 
     private static void rebuildSimulationMapping() {
