@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Mixin(ItemStack.class)
@@ -35,7 +36,9 @@ public abstract class ItemStackTooltipMixin {
 
         Integer fakeValue = MapSimulationStore.resolveValue(mapId);
         if (fakeValue != null) {
-            cir.getReturnValue().add(Text.literal("Blackjack value: " + fakeValue));
+            List<Text> tooltip = new ArrayList<>(cir.getReturnValue());
+            tooltip.add(Text.literal("Blackjack value: " + fakeValue));
+            cir.setReturnValue(tooltip);
         }
     }
 }
