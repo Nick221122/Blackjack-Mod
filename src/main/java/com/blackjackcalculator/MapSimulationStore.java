@@ -6,10 +6,11 @@ import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.map.MapState;
 
-import java.util.LinkedHashMap;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -21,6 +22,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public final class MapSimulationStore {
     private static final Map<Integer, MapState> REPRESENTATIONS = new LinkedHashMap<>();
     private static Map<Integer, Integer> SIMULATION_MAPPING = Map.of();
+    private static Set<Integer> ACTIVE_MAP_IDS = Set.of();
     private static boolean enabled;
 
     private MapSimulationStore() {}
@@ -31,17 +33,33 @@ public final class MapSimulationStore {
 
     public static void toggle() {
         enabled = !enabled;
-        if (enabled) rebuildSimulationMapping();
-        else SIMULATION_MAPPING = Map.of();
+        if (enabled) {
+            rebuildSimulationMapping();
+        } else {
+            SIMULATION_MAPPING = Map.of();
+            ACTIVE_MAP_IDS = Set.of();
+        }
     }
 
     public static void clear() {
         REPRESENTATIONS.clear();
         SIMULATION_MAPPING = Map.of();
+        ACTIVE_MAP_IDS = Set.of();
+    }
+
+    public static void setActiveMapIds(Set<Integer> mapIds) {
+        ACTIVE_MAP_IDS = mapIds == null ? Set.of() : Set.copyOf(mapIds);
+    }
+
+    static boolean shouldSimulateMap(boolean simulationEnabled, Set<Integer> activeMapIds, int mapId) {
+        return simulationEnabled && activeMapIds != null && activeMapIds.contains(mapId);
     }
 
     public static Integer resolveDisplayId(MapIdComponent actualMapId) {
-        if (!enabled || actualMapId == null || REPRESENTATIONS.isEmpty()) return null;
+        if (!shouldSimulateMap(enabled, ACTIVE_MAP_IDS, actualMapId == null ? -1 : actualMapId.id())
+                || REPRESENTATIONS.isEmpty()) {
+            return null;
+        }
         return MapSimulationSelection.selectMappedDisplayId(actualMapId.id(), SIMULATION_MAPPING);
     }
 
@@ -52,7 +70,10 @@ public final class MapSimulationStore {
 
     /** Returns the fake card value that corresponds to the simulated map shown for this frame. */
     public static Integer resolveValue(MapIdComponent actualMapId) {
-        if (!enabled || actualMapId == null) return null;
+        if (actualMapId == null
+                || !shouldSimulateMap(enabled, ACTIVE_MAP_IDS, actualMapId.id())) {
+            return null;
+        }
         return MapSimulationSelection.selectMappedValue(
                 actualMapId.id(),
                 SIMULATION_MAPPING,
