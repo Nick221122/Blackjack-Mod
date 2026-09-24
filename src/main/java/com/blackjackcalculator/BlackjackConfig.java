@@ -100,6 +100,20 @@ public final class BlackjackConfig {
     public static int getScannedMapValue(int mapId) {
         return getScannedMapValue(new MapIdComponent(mapId).toString());
     }
+
+    public static Map<Integer, Integer> getScannedMapValuesById() {
+        Map<Integer, Integer> values = new LinkedHashMap<>();
+        SHARED_SCANNED_MAPS.forEach((key, value) -> {
+            try {
+                String prefix = "MapIdComponent[id=";
+                if (key.startsWith(prefix) && key.endsWith("]")) {
+                    int id = Integer.parseInt(key.substring(prefix.length(), key.length() - 1));
+                    values.put(id, value);
+                }
+            } catch (NumberFormatException ignored) {}
+        });
+        return Map.copyOf(values);
+    }
     public static void replaceSharedScan(Map<String, Integer> values) { SHARED_SCANNED_MAPS.clear(); SHARED_SCANNED_MAPS.putAll(values); }
     public static String getHostName() { return hostName; }
     public static String getViewerName() { return viewerName; }
