@@ -20,7 +20,10 @@ public abstract class ItemFrameEntityRendererMixin {
     @Final
     private MapRenderer mapRenderer;
 
-    @Inject(method = "updateRenderState", at = @At("RETURN"))
+    @Inject(
+            method = "updateRenderState(Lnet/minecraft/entity/decoration/ItemFrameEntity;Lnet/minecraft/client/render/entity/state/ItemFrameEntityRenderState;F)V",
+            at = @At("RETURN")
+    )
     private void blackjack$applySimulation(
             ItemFrameEntity frame,
             ItemFrameEntityRenderState renderState,
