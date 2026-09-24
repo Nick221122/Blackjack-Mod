@@ -24,4 +24,11 @@ class BlackjackScoreTest {
     void displaysBust() {
         assertEquals("BUST", BlackjackScore.display(22, true));
     }
+
+    @Test
+    void hostDisplayNeverShowsBust() {
+        assertEquals("21", BlackjackScore.displayHost(22, true));
+        assertEquals("21", BlackjackScore.displayHost(30, true));
+        assertEquals("-", BlackjackScore.displayHost(0, false));
+    }
 }
