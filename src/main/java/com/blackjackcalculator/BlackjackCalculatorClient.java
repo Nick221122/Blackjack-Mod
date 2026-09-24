@@ -133,7 +133,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         if (client.player != null && MapSimulationStore.isEnabled()) {
             String count = BlackjackNarration.formatCount(
                     BlackjackConfig.getHostName(),
-                    BlackjackScore.display(hostTotal, hostHasCards),
+                    hostDisplay(),
                     hostHasCards,
                     BlackjackConfig.getViewerName(),
                     BlackjackScore.display(viewerTotal, viewerHasCards),
@@ -250,7 +250,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null || client.options.hudHidden) return;
-        drawTotal(context, client, BlackjackConfig.getHostName(), BlackjackScore.display(hostTotal, hostHasCards), true);
+        drawTotal(context, client, BlackjackConfig.getHostName(), hostDisplay(), true);
         drawTotal(context, client, BlackjackConfig.getViewerName(), BlackjackScore.display(viewerTotal, viewerHasCards), false);
     }
 
@@ -271,6 +271,12 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     static int resolveHudX(boolean host, int configuredX, int textWidth, int screenWidth) {
         if (host && configuredX < 0) return Math.max(0, screenWidth - textWidth - 8);
         return Math.max(0, configuredX);
+    }
+
+    private static String hostDisplay() {
+        return MapSimulationStore.isEnabled()
+                ? BlackjackScore.displayHost(hostTotal, hostHasCards)
+                : BlackjackScore.display(hostTotal, hostHasCards);
     }
 
     public static int getHostTotal() { return hostTotal; }
