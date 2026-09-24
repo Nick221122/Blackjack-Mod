@@ -20,7 +20,6 @@ public final class BlackjackScore {
     }
 
     public static String displayHost(int total, boolean hasCards) {
-        if (!hasCards) return "-";
-        return Integer.toString(Math.min(total, 21));
+        return display(total, hasCards);
     }
 }
