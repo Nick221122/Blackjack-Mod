@@ -54,8 +54,6 @@ public abstract class InGameHudMixin {
                     size,
                     rightStart,
                     removedY,
-                    size - rightStart,
-                    size - removedY,
                     x + rightStart,
                     y + removedY,
                     size - rightStart,
