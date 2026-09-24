@@ -64,7 +64,7 @@ public final class MapSimulationSelection {
     }
 
     /** Returns the simulated map id for an already-built simulation mapping. */
-    public static Integer selectDisplayId(int actualMapId, Map<Integer, Integer> mapping) {
+    public static Integer selectMappedDisplayId(int actualMapId, Map<Integer, Integer> mapping) {
         if (mapping == null) return null;
         return mapping.get(actualMapId);
     }
