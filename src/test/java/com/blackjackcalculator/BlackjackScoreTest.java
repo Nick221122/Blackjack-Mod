@@ -21,6 +21,18 @@ class BlackjackScoreTest {
     }
 
     @Test
+    void simulationUsesFakeValueWhenEnabledAndOriginalWhenDisabled() {
+        assertEquals(9, BlackjackScore.selectCountValue(3, 9, true));
+        assertEquals(3, BlackjackScore.selectCountValue(3, 9, false));
+    }
+
+    @Test
+    void simulationDoesNotFallBackToRealValueWhenFakeValueIsMissing() {
+        assertEquals(-1, BlackjackScore.selectCountValue(10, null, true));
+        assertEquals(10, BlackjackScore.selectCountValue(10, null, false));
+    }
+
+    @Test
     void displaysBust() {
         assertEquals("BUST", BlackjackScore.display(22, true));
     }
