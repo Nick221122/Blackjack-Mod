@@ -15,4 +15,9 @@ public abstract class ItemFrameEntityRendererMixin {
     private void blackjack$setRenderFrame(ItemFrameEntity frame, ItemFrameEntityRenderState state, float tickDelta, CallbackInfo ci) {
         MapSimulationRenderContext.set(frame);
     }
+
+    @Inject(method = "updateRenderState", at = @At("RETURN"))
+    private void blackjack$clearRenderFrame(ItemFrameEntity frame, ItemFrameEntityRenderState state, float tickDelta, CallbackInfo ci) {
+        MapSimulationRenderContext.clear();
+    }
 }
