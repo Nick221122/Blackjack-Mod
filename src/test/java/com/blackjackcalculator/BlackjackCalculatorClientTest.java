@@ -33,6 +33,14 @@ class BlackjackCalculatorClientTest {
     }
 
     @Test
+    void simulationToggleDetectsOnlyThePressEdge() {
+        assertTrue(BlackjackCalculatorClient.isNewMapSimulationKeyPress(true, false));
+        assertEquals(false, BlackjackCalculatorClient.isNewMapSimulationKeyPress(true, true));
+        assertEquals(false, BlackjackCalculatorClient.isNewMapSimulationKeyPress(false, false));
+        assertEquals(false, BlackjackCalculatorClient.isNewMapSimulationKeyPress(false, true));
+    }
+
+    @Test
     void resetHudResolvesHostToRightAndViewerToLeft() {
         assertEquals(142, BlackjackCalculatorClient.resolveHudX(true, -1, 50, 200));
         assertEquals(8, BlackjackCalculatorClient.resolveHudX(false, 8, 50, 200));
