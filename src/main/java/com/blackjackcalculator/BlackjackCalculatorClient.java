@@ -3,7 +3,6 @@ package com.blackjackcalculator;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
@@ -64,15 +63,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             });
         });
         HudElementRegistry.addLast(HUD_ID, BlackjackCalculatorClient::renderHud);
-        ItemTooltipCallback.EVENT.register((stack, tooltipContext, tooltipType, lines) -> {
-            if (!MapSimulationStore.isEnabled()) return;
-            MapIdComponent mapId = stack.get(DataComponentTypes.MAP_ID);
-            if (mapId == null) return;
-            Integer fakeValue = MapSimulationStore.resolveValue(mapId);
-            if (fakeValue != null) {
-                lines.add(Text.literal("Blackjack value: " + fakeValue));
-            }
-        });
     }
 
     private static void scanOpenContainer(MinecraftClient client, Screen screen) {
