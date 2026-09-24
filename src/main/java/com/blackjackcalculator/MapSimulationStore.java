@@ -9,6 +9,7 @@ import net.minecraft.item.map.MapState;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Client-only store of scanned map visual representations.
@@ -18,6 +19,7 @@ import java.util.Map;
  */
 public final class MapSimulationStore {
     private static final Map<Integer, MapState> REPRESENTATIONS = new LinkedHashMap<>();
+    private static Map<Integer, Integer> SIMULATION_MAPPING = Map.of();
     private static boolean enabled;
 
     private MapSimulationStore() {}
@@ -28,17 +30,27 @@ public final class MapSimulationStore {
 
     public static void toggle() {
         enabled = !enabled;
+        if (enabled) rebuildSimulationMapping();
+        else SIMULATION_MAPPING = Map.of();
     }
 
     public static void clear() {
         REPRESENTATIONS.clear();
+        SIMULATION_MAPPING = Map.of();
     }
 
     public static MapState resolve(MapIdComponent actualMapId) {
         if (!enabled || actualMapId == null || REPRESENTATIONS.isEmpty()) return null;
 
-        Integer displayId = MapSimulationSelection.selectDisplayId(actualMapId.id(), List.copyOf(REPRESENTATIONS.keySet()));
+        Integer displayId = SIMULATION_MAPPING.get(actualMapId.id());
         return displayId == null ? null : REPRESENTATIONS.get(displayId);
+    }
+
+    private static void rebuildSimulationMapping() {
+        SIMULATION_MAPPING = MapSimulationSelection.buildPermutation(
+                List.copyOf(REPRESENTATIONS.keySet()),
+                ThreadLocalRandom.current().nextLong()
+        );
     }
 
     public static int scanContainer(MinecraftClient client, Iterable<ItemStack> stacks) {
@@ -56,6 +68,7 @@ public final class MapSimulationStore {
             REPRESENTATIONS.put(mapId.id(), state);
             scanned++;
         }
+        if (enabled) rebuildSimulationMapping();
         return scanned;
     }
 }
