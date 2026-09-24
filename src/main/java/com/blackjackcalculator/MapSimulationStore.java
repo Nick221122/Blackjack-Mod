@@ -39,10 +39,13 @@ public final class MapSimulationStore {
         SIMULATION_MAPPING = Map.of();
     }
 
-    public static MapState resolve(MapIdComponent actualMapId) {
+    public static Integer resolveDisplayId(MapIdComponent actualMapId) {
         if (!enabled || actualMapId == null || REPRESENTATIONS.isEmpty()) return null;
+        return MapSimulationSelection.selectDisplayId(actualMapId.id(), SIMULATION_MAPPING);
+    }
 
-        Integer displayId = SIMULATION_MAPPING.get(actualMapId.id());
+    public static MapState resolve(MapIdComponent actualMapId) {
+        Integer displayId = resolveDisplayId(actualMapId);
         return displayId == null ? null : REPRESENTATIONS.get(displayId);
     }
 
