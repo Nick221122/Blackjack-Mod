@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public final class BlackjackCalculatorClient implements ClientModInitializer {
+public final class BlackjackCalculatorClient {
     private static final String MOD_ID = "blackjackcalculator";
     private static final Identifier HUD_ID = Identifier.of(MOD_ID, "totals");
     private static final double SCAN_RADIUS = 256.0D;
@@ -111,9 +111,20 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     private static void toggleMapSimulation(MinecraftClient client) {
         MapSimulationStore.toggle();
+        updateTotals(client);
         if (client.player != null) {
             String state = MapSimulationStore.isEnabled() ? "enabled" : "disabled";
             client.player.sendMessage(Text.literal("Client map simulation " + state + "."), true);
+            if (MapSimulationStore.isEnabled()) {
+                String count = BlackjackNarration.formatCount(
+                        BlackjackConfig.getHostName(),
+                        BlackjackScore.display(hostTotal, hostHasCards),
+                        hostHasCards,
+                        BlackjackConfig.getViewerName(),
+                        BlackjackScore.display(viewerTotal, viewerHasCards),
+                        viewerHasCards);
+                client.getNarratorManager().narrateSystemImmediately(Text.literal(count));
+            }
         }
     }
 
