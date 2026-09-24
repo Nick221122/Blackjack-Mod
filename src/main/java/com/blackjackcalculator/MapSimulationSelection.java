@@ -21,36 +21,14 @@ public final class MapSimulationSelection {
         if (knownMapIds == null || knownMapIds.isEmpty()) return Map.of();
         if (knownMapIds.size() == 1) return Map.of(knownMapIds.get(0), knownMapIds.get(0));
 
-        List<Integer> shuffled = new ArrayList<>(knownMapIds);
-        Random random = new Random(seed);
-        for (int attempt = 0; attempt < 100; attempt++) {
-            java.util.Collections.shuffle(shuffled, random);
-            boolean valid = true;
-            for (int i = 0; i < knownMapIds.size(); i++) {
-                if (knownMapIds.get(i).equals(shuffled.get(i))) {
-                    valid = false;
-                    break;
-                }
-            }
-            if (valid) break;
-        }
-
-        boolean valid = true;
-        for (int i = 0; i < knownMapIds.size(); i++) {
-            if (knownMapIds.get(i).equals(shuffled.get(i))) {
-                valid = false;
-                break;
-            }
-        }
-        if (!valid) {
-            for (int i = 0; i < knownMapIds.size(); i++) {
-                shuffled.set(i, knownMapIds.get((i + 1) % knownMapIds.size()));
-            }
-        }
-
+        // Preserve the exact dispenser scan order: each map uses the next scanned
+        // map as its fake representation, and the last scanned map wraps to the first.
         Map<Integer, Integer> permutation = new LinkedHashMap<>();
         for (int i = 0; i < knownMapIds.size(); i++) {
-            permutation.put(knownMapIds.get(i), shuffled.get(i));
+            permutation.put(
+                    knownMapIds.get(i),
+                    knownMapIds.get((i + 1) % knownMapIds.size())
+            );
         }
         return permutation;
     }
