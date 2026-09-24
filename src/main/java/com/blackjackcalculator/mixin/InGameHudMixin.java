@@ -30,6 +30,7 @@ public abstract class InGameHudMixin {
             CallbackInfo ci) {
         if (!MapSimulationStore.isEnabled()) return;
         if (!(type instanceof Enum<?> heartType) || !"CONTAINER".equals(heartType.name())) return;
+        if (!MapSimulationHud.claimHeartSuppression(true, true)) return;
 
         Identifier texture = ((HeartTypeAccessor) type).blackjack$getTexture(hardcore, half, blinking);
         RenderPipeline pipeline = RenderPipelines.GUI_TEXTURED;
