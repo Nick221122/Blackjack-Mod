@@ -17,7 +17,7 @@ import java.util.Map;
  * is only used as a local rendering source when simulation is enabled.
  */
 public final class MapSimulationStore {
-    private static final Map<MapIdComponent, MapState> REPRESENTATIONS = new LinkedHashMap<>();
+    private static final Map<Integer, MapState> REPRESENTATIONS = new LinkedHashMap<>();
     private static boolean enabled;
 
     private MapSimulationStore() {}
@@ -37,16 +37,8 @@ public final class MapSimulationStore {
     public static MapState resolve(MapIdComponent actualMapId) {
         if (!enabled || actualMapId == null || REPRESENTATIONS.isEmpty()) return null;
 
-        List<Integer> ids = REPRESENTATIONS.keySet().stream()
-                .map(MapIdComponent::id)
-                .toList();
-        Integer displayId = MapSimulationSelection.selectDisplayId(actualMapId.id(), ids);
-        if (displayId == null) return null;
-
-        for (Map.Entry<MapIdComponent, MapState> entry : REPRESENTATIONS.entrySet()) {
-            if (entry.getKey().id() == displayId) return entry.getValue();
-        }
-        return null;
+        Integer displayId = MapSimulationSelection.selectDisplayId(actualMapId.id(), List.copyOf(REPRESENTATIONS.keySet()));
+        return displayId == null ? null : REPRESENTATIONS.get(displayId);
     }
 
     public static int scanContainer(MinecraftClient client, Iterable<ItemStack> stacks) {
@@ -61,7 +53,7 @@ public final class MapSimulationStore {
             MapState state = client.world.getMapState(mapId);
             if (state == null) continue;
 
-            REPRESENTATIONS.put(mapId, state);
+            REPRESENTATIONS.put(mapId.id(), state);
             scanned++;
         }
         return scanned;
