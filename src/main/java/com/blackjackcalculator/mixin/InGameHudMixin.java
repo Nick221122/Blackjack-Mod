@@ -8,6 +8,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Coerce;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -20,16 +21,14 @@ public abstract class InGameHudMixin {
     )
     private void blackjack$drawSimulatedHeart(
             DrawContext context,
-            Object type,
+            @Coerce Object type,
             int x,
             int y,
             boolean hardcore,
             boolean blinking,
             boolean half,
             CallbackInfo ci) {
-        if (!MapSimulationStore.isEnabled()) {
-            return;
-        }
+        if (!MapSimulationStore.isEnabled()) return;
 
         Identifier texture = ((HeartTypeAccessor) type).blackjack$getTexture(hardcore, half, blinking);
         RenderPipeline pipeline = RenderPipelines.GUI_TEXTURED;
@@ -40,7 +39,6 @@ public abstract class InGameHudMixin {
         if (removedY > 0) {
             context.drawGuiTexture(pipeline, texture, size, size, 0, 0, x, y, size, removedY);
         }
-
         if (removedX > 0) {
             context.drawGuiTexture(pipeline, texture, size, size, 0, removedY, x, y + removedY, removedX, size - removedY);
         }
@@ -60,7 +58,6 @@ public abstract class InGameHudMixin {
                     size - removedY
             );
         }
-
         ci.cancel();
     }
 }
