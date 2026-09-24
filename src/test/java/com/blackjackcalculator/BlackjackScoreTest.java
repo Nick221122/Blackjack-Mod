@@ -27,8 +27,8 @@ class BlackjackScoreTest {
     }
 
     @Test
-    void simulationDoesNotFallBackToRealValueWhenFakeValueIsMissing() {
-        assertEquals(-1, BlackjackScore.selectCountValue(10, null, true));
+    void simulationFallsBackToRealValueWhenFakeValueIsUnavailable() {
+        assertEquals(10, BlackjackScore.selectCountValue(10, null, true));
         assertEquals(10, BlackjackScore.selectCountValue(10, null, false));
     }
 
