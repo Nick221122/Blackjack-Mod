@@ -6,7 +6,8 @@
   "client": [
     "HeartTypeAccessor",
     "InGameHudMixin",
-    "ItemFrameEntityRendererMixin"
+    "ItemFrameEntityRendererMixin",
+    "ItemStackTooltipMixin"
   ],
   "injectors": {
     "defaultRequire": 1
