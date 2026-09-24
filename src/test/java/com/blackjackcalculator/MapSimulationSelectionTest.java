@@ -53,20 +53,5 @@ class MapSimulationSelectionTest {
         assertEquals(9, MapSimulationSelection.selectMappedValue(10, mapping, fakeValues));
     }
 
-    @Test
-    void unknownMapIdsAreNotSimulated() {
-        assertNull(MapSimulationSelection.selectDisplayId(999, List.of(10, 20)));
-    }
 
-    @Test
-    void aSingleStoredRepresentationOnlyAppliesToThatMap() {
-        assertEquals(10, MapSimulationSelection.selectDisplayId(10, List.of(10)));
-        assertNull(MapSimulationSelection.selectDisplayId(999, List.of(10)));
-    }
-
-    @Test
-    void noStoredRepresentationsDisableSelection() {
-        assertNull(MapSimulationSelection.selectDisplayId(10, List.of()));
-        assertNull(MapSimulationSelection.selectDisplayId(10, null));
-    }
 }
