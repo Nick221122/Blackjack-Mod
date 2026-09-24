@@ -62,4 +62,12 @@ public abstract class InGameHudMixin {
         }
         ci.cancel();
     }
+    @Inject(
+            method = "renderStatusBars",
+            at = @At("HEAD")
+    )
+    private void blackjack$resetHeartSuppression(CallbackInfo ci) {
+        MapSimulationHud.resetHeartSuppression();
+    }
+
 }
