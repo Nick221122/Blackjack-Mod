@@ -4,17 +4,21 @@
 - [x] Fabric remap Loom used for the obfuscated 1.21.11 release
 - [x] Java 21 source/target
 - [x] Fabric API 0.141.6+1.21.11
-- [x] Normal cards restricted to 2–9
-- [x] Ace represented by 1 and scored as 11/1
-- [x] Invalid or missing custom names are ignored safely
-- [x] Host/Viewer role stored per item frame locally
-- [x] One dispenser can supply both Host and Viewer cards
-- [x] Host/Viewer assignment keybinds are configurable in Controls
-- [x] Targeted frame role can be cleared
+- [x] Scanned card values are read from dispenser/dropper slots
+- [x] Ace scoring supports 11/1 automatically
+- [x] Invalid or missing map IDs are ignored safely
+- [x] Host/Viewer selection stored locally
+- [x] Host/Viewer selection keybinds are configurable in Controls
 - [x] HUD positions can be dragged in an editor
 - [x] HUD positions persist across restarts
 - [x] Configuration read/write failures cannot crash Minecraft
 - [x] Glow item frames work through ItemFrameEntity
 - [x] HUD hides when Minecraft HUD is hidden
-- [ ] Full Gradle/Minecraft compilation in an environment with Maven/Gradle dependency access
-- [ ] In-game test on Minecraft 1.21.11
+- [x] R toggles client-only map simulation
+- [x] Simulated visuals and simulated counting use the same mapped card
+- [x] Counting falls back to real scanned values when a fake value is unavailable
+- [x] Viewer simulation is capped at 20
+- [x] Host simulation is kept above the Viewer when both have cards
+- [x] Production JAR is uploaded by GitHub Actions
+- [x] Latest GitHub Actions production build passes
+- [ ] In-game smoke test on Minecraft 1.21.11
