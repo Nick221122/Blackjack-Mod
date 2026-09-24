@@ -25,6 +25,16 @@ class MapSimulationSelectionTest {
     }
 
     @Test
+    void scoringCanUseTheSameSimulatedMapAsTheRenderedMap() {
+        Map<Integer, Integer> mapping = Map.of(10, 20, 20, 30, 30, 10);
+
+        assertEquals(20, MapSimulationSelection.selectDisplayId(10, mapping));
+        assertEquals(30, MapSimulationSelection.selectDisplayId(20, mapping));
+        assertEquals(10, MapSimulationSelection.selectDisplayId(30, mapping));
+        assertNull(MapSimulationSelection.selectDisplayId(999, mapping));
+    }
+
+    @Test
     void unknownMapIdsAreNotSimulated() {
         assertNull(MapSimulationSelection.selectDisplayId(999, List.of(10, 20)));
     }
