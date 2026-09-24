@@ -24,6 +24,15 @@ class BlackjackCalculatorClientTest {
     }
 
     @Test
+    void simulationMakesHostStandAt17OrHigher() {
+        assertTrue(BlackjackCalculatorClient.hostMustStand(17, true, true));
+        assertTrue(BlackjackCalculatorClient.hostMustStand(21, true, true));
+        assertEquals(false, BlackjackCalculatorClient.hostMustStand(16, true, true));
+        assertEquals(false, BlackjackCalculatorClient.hostMustStand(17, true, false));
+        assertEquals(false, BlackjackCalculatorClient.hostMustStand(17, false, true));
+    }
+
+    @Test
     void resetHudResolvesHostToRightAndViewerToLeft() {
         assertEquals(142, BlackjackCalculatorClient.resolveHudX(true, -1, 50, 200));
         assertEquals(8, BlackjackCalculatorClient.resolveHudX(false, 8, 50, 200));
