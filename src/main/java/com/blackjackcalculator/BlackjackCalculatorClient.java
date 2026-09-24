@@ -211,17 +211,16 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         for (ItemFrameEntity frame : frames) {
             boolean inHost = isFrameInsideSelection(client, frame, BlackjackConfig.Role.HOST);
             boolean inViewer = isFrameInsideSelection(client, frame, BlackjackConfig.Role.VIEWER);
-            BlackjackConfig.Role role = inHost && !inViewer ? BlackjackConfig.Role.HOST : inViewer && !inHost ? BlackjackConfig.Role.VIEWER : null;
-            if (role == null) continue;
             String mapId = mapIdSignature(frame.getHeldItemStack());
             if (mapId == null) continue;
             int value = BlackjackConfig.getScannedMapValue(mapId);
             if (value < 0) continue;
-            if (role == BlackjackConfig.Role.HOST) {
+            if (inHost) {
                 foundHost = true;
                 if (value == 11) hostAces++;
                 else hostFixed += value;
-            } else {
+            }
+            if (inViewer) {
                 foundViewer = true;
                 if (value == 11) viewerAces++;
                 else viewerFixed += value;
@@ -231,6 +230,14 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         viewerHasCards = foundViewer;
         hostTotal = BlackjackScore.score(hostFixed, hostAces);
         viewerTotal = BlackjackScore.score(viewerFixed, viewerAces);
+    }
+
+    public static boolean isSelectedMapFrame(ItemFrameEntity frame) {
+        if (frame == null || frame.isRemoved()) return false;
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.world == null) return false;
+        return isFrameInsideSelection(client, frame, BlackjackConfig.Role.HOST)
+                || isFrameInsideSelection(client, frame, BlackjackConfig.Role.VIEWER);
     }
 
     private static boolean isFrameInsideSelection(MinecraftClient client, ItemFrameEntity frame, BlackjackConfig.Role role) {
