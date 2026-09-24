@@ -15,4 +15,11 @@ class MapSimulationToggleTest {
     void allowsToggleWhenAllItemFramesAreEmpty() {
         assertFalse(BlackjackCalculatorClient.isMapSimulationToggleBlocked(false));
     }
+
+    @Test
+    void onlyTreatsAKeyPressAsAToggleOnce() {
+        assertTrue(BlackjackCalculatorClient.isNewMapSimulationKeyPress(true, false));
+        assertFalse(BlackjackCalculatorClient.isNewMapSimulationKeyPress(true, true));
+        assertFalse(BlackjackCalculatorClient.isNewMapSimulationKeyPress(false, true));
+    }
 }
