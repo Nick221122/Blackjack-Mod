@@ -13,6 +13,16 @@ public final class BlackjackScore {
         return total;
     }
 
+    /**
+     * Selects the value used for counting a card.
+     * Simulation mode deliberately does not fall back to the real value when
+     * no fake value exists, so simulated scoring cannot accidentally use real cards.
+     */
+    public static int selectCountValue(int realValue, Integer fakeValue, boolean simulationEnabled) {
+        if (!simulationEnabled) return realValue;
+        return fakeValue == null ? -1 : fakeValue;
+    }
+
     /** Returns a simulation-safe total that never exceeds 20, preserving the player's count. */
     public static int simulationViewerTotal(int total, boolean hasCards) {
         if (!hasCards) return 0;
