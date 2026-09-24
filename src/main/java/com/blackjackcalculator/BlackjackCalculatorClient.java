@@ -132,11 +132,11 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         updateTotals(client);
         if (client.player != null && MapSimulationStore.isEnabled()) {
             String count = BlackjackNarration.formatCount(
-                        BlackjackConfig.getHostName(),
-                        BlackjackScore.display(hostTotal, hostHasCards),
-                        hostHasCards,
-                        BlackjackConfig.getViewerName(),
-                        BlackjackScore.display(viewerTotal, viewerHasCards),
+                    BlackjackConfig.getHostName(),
+                    BlackjackScore.display(hostTotal, hostHasCards),
+                    hostHasCards,
+                    BlackjackConfig.getViewerName(),
+                    BlackjackScore.display(viewerTotal, viewerHasCards),
                     viewerHasCards);
             client.getNarratorManager().narrateSystemImmediately(count);
         }
