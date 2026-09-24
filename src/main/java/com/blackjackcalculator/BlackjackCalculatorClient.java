@@ -18,6 +18,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -105,8 +106,21 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignHostKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.HOST);
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
-        while (mapSimulationKey.wasPressed()) toggleMapSimulation(client);
+        while (mapSimulationKey.wasPressed()) {
+            if (!isMapSimulationToggleBlocked(isTargetingItemFrame(client))) {
+                toggleMapSimulation(client);
+            }
+        }
         updateTotals(client);
+    }
+
+    static boolean isMapSimulationToggleBlocked(boolean lookingAtItemFrame) {
+        return lookingAtItemFrame;
+    }
+
+    private static boolean isTargetingItemFrame(MinecraftClient client) {
+        return client.crosshairTarget instanceof EntityHitResult hit
+                && hit.getEntity() instanceof ItemFrameEntity;
     }
 
     private static void toggleMapSimulation(MinecraftClient client) {
