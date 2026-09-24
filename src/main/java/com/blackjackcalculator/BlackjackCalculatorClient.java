@@ -18,6 +18,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -105,8 +106,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
         boolean rPressed = GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
-        if (isNewMapSimulationKeyPress(rPressed, mapSimulationKeyDown)
-                && !isMapSimulationToggleBlocked(hasFilledItemFrame(client))) {
+        if (isNewMapSimulationKeyPress(rPressed, mapSimulationKeyDown)) {
             toggleMapSimulation(client);
         }
         mapSimulationKeyDown = rPressed;
@@ -115,22 +115,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     static boolean isNewMapSimulationKeyPress(boolean pressed, boolean wasPressed) {
         return pressed && !wasPressed;
-    }
-
-    static boolean isMapSimulationToggleBlocked(boolean hasFilledItemFrame) {
-        return hasFilledItemFrame;
-    }
-
-    private static boolean hasFilledItemFrame(MinecraftClient client) {
-        if (client.world == null) return false;
-        for (Entity entity : client.world.getEntities()) {
-            if (entity instanceof ItemFrameEntity frame
-                    && !frame.isRemoved()
-                    && !frame.getHeldItemStack().isEmpty()) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static void toggleMapSimulation(MinecraftClient client) {
@@ -171,6 +155,12 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     /** Long-range selection raycast with a forgiving hitbox so distant frames are easier to select. */
     static ItemFrameEntity findTargetFrame(MinecraftClient client) {
+        if (client.crosshairTarget instanceof EntityHitResult hit
+                && hit.getEntity() instanceof ItemFrameEntity frame
+                && !frame.isRemoved()) {
+            return frame;
+        }
+
         var start = client.player.getCameraPosVec(1.0F);
         var end = start.add(client.player.getRotationVec(1.0F).multiply(SELECTION_RAY_DISTANCE));
         Box searchBox = new Box(start, end).expand(1.0D);
@@ -186,6 +176,10 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             }
         }
         return best;
+    }
+
+    static boolean hostMustStand(int total, boolean hasCards, boolean simulationEnabled) {
+        return simulationEnabled && hasCards && total >= 17;
     }
 
     private static String roleName(BlackjackConfig.Role role) {
@@ -280,9 +274,10 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     }
 
     private static String hostDisplay() {
-        return MapSimulationStore.isEnabled()
-                ? BlackjackScore.displayHost(hostTotal, hostHasCards)
-                : BlackjackScore.display(hostTotal, hostHasCards);
+        if (MapSimulationStore.isEnabled() && hostMustStand(hostTotal, hostHasCards, true)) {
+            return Integer.toString(hostTotal);
+        }
+        return BlackjackScore.display(hostTotal, hostHasCards);
     }
 
     public static int getHostTotal() { return hostTotal; }
