@@ -40,6 +40,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static KeyBinding assignViewerKey;
     private static KeyBinding editHudKey;
     private static KeyBinding scanContainerKey;
+    private static KeyBinding mapSimulationKey;
     private static int hostTotal, viewerTotal;
     private static boolean hostHasCards, viewerHasCards;
 
@@ -52,6 +53,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         assignViewerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_viewer", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_U, category));
         editHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.edit_hud", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_P, category));
         scanContainerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.scan_container", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, category));
+        mapSimulationKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.toggle_map_simulation", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, category));
         ClientTickEvents.END_CLIENT_TICK.register(BlackjackCalculatorClient::onClientTick);
         ScreenEvents.BEFORE_INIT.register((client1, screen, scaledWidth, scaledHeight) -> {
             ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, context) -> {
@@ -75,6 +77,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             return;
         }
         Map<String, Integer> scanned = new java.util.LinkedHashMap<>();
+        List<ItemStack> scannedStacks = new java.util.ArrayList<>();
         int occupied = 0;
         for (int slot = 0; slot < 9; slot++) {
             ItemStack stack = handler.getSlot(slot).getStack();
@@ -82,11 +85,14 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             String mapId = mapIdSignature(stack);
             if (mapId == null) continue;
             scanned.put(mapId, SCAN_VALUES[slot]);
+            scannedStacks.add(stack);
             occupied++;
         }
         BlackjackConfig.replaceSharedScan(scanned);
+        MapSimulationStore.clear();
+        int simulated = MapSimulationStore.scanContainer(client, scannedStacks);
         BlackjackConfig.save(client);
-        client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s). Shared by Host and Viewer."), true);
+        client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s). Shared by Host and Viewer. Captured " + simulated + " visual map(s) locally."), true);
     }
 
     static String mapIdSignature(ItemStack stack) {
@@ -99,7 +105,16 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignHostKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.HOST);
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
+        while (mapSimulationKey.wasPressed()) toggleMapSimulation(client);
         updateTotals(client);
+    }
+
+    private static void toggleMapSimulation(MinecraftClient client) {
+        MapSimulationStore.toggle();
+        if (client.player != null) {
+            String state = MapSimulationStore.isEnabled() ? "enabled" : "disabled";
+            client.player.sendMessage(Text.literal("Client map simulation " + state + "."), true);
+        }
     }
 
     private static void selectCorner(MinecraftClient client, BlackjackConfig.Role role) {
