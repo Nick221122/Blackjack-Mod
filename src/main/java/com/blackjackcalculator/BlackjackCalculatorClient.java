@@ -212,9 +212,19 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             boolean inViewer = isFrameInsideSelection(client, frame, BlackjackConfig.Role.VIEWER);
             BlackjackConfig.Role role = inHost && !inViewer ? BlackjackConfig.Role.HOST : inViewer && !inHost ? BlackjackConfig.Role.VIEWER : null;
             if (role == null) continue;
-            String mapId = mapIdSignature(frame.getHeldItemStack());
+            MapIdComponent mapId = frame.getHeldItemStack().get(DataComponentTypes.MAP_ID);
             if (mapId == null) continue;
-            int value = BlackjackConfig.getScannedMapValue(mapId);
+
+            int value;
+            Integer simulatedMapId = null;
+            if (MapSimulationStore.isEnabled() && isFrameInSelectedArea(client, frame)) {
+                simulatedMapId = MapSimulationStore.resolveDisplayId(mapId);
+            }
+            if (simulatedMapId != null) {
+                value = BlackjackConfig.getScannedMapValue(simulatedMapId);
+            } else {
+                value = BlackjackConfig.getScannedMapValue(mapId.toString());
+            }
             if (value < 0) continue;
             if (role == BlackjackConfig.Role.HOST) {
                 foundHost = true;
