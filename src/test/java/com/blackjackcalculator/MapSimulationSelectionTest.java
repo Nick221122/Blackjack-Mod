@@ -28,10 +28,10 @@ class MapSimulationSelectionTest {
     void scoringCanUseTheSameSimulatedMapAsTheRenderedMap() {
         Map<Integer, Integer> mapping = Map.of(10, 20, 20, 30, 30, 10);
 
-        assertEquals(20, MapSimulationSelection.selectDisplayId(10, mapping));
-        assertEquals(30, MapSimulationSelection.selectDisplayId(20, mapping));
-        assertEquals(10, MapSimulationSelection.selectDisplayId(30, mapping));
-        assertNull(MapSimulationSelection.selectDisplayId(999, mapping));
+        assertEquals(20, MapSimulationSelection.selectMappedDisplayId(10, mapping));
+        assertEquals(30, MapSimulationSelection.selectMappedDisplayId(20, mapping));
+        assertEquals(10, MapSimulationSelection.selectMappedDisplayId(30, mapping));
+        assertNull(MapSimulationSelection.selectMappedDisplayId(999, mapping));
     }
 
     @Test
