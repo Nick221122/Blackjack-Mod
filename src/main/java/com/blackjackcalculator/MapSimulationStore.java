@@ -7,6 +7,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.map.MapState;
 
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -60,8 +61,12 @@ public final class MapSimulationStore {
     }
 
     private static void rebuildSimulationMapping() {
+        List<Integer> knownIds = new ArrayList<>(BlackjackConfig.getScannedMapValuesById().keySet());
+        for (Integer id : REPRESENTATIONS.keySet()) {
+            if (!knownIds.contains(id)) knownIds.add(id);
+        }
         SIMULATION_MAPPING = MapSimulationSelection.buildPermutation(
-                List.copyOf(REPRESENTATIONS.keySet()),
+                knownIds,
                 ThreadLocalRandom.current().nextLong()
         );
     }
