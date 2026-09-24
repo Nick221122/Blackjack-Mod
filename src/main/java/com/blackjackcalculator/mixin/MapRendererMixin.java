@@ -21,11 +21,13 @@ public abstract class MapRendererMixin {
     )
     private MapState blackjack$replaceMapState(MapState actualState, MapIdComponent mapId) {
         ItemFrameEntity frame = MapSimulationRenderContext.currentFrame();
-        if (!BlackjackCalculatorClient.isSelectedMapFrame(frame)) {
-            return actualState;
-        }
         MapState simulatedState = MapSimulationStore.resolve(mapId);
-        return simulatedState != null ? simulatedState : actualState;
+        return MapSimulationStore.shouldSimulateForFrame(
+                MapSimulationStore.isEnabled(),
+                BlackjackCalculatorClient.isSelectedMapFrame(frame),
+                simulatedState != null)
+                ? simulatedState
+                : actualState;
     }
 
 }
