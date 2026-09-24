@@ -185,6 +185,10 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         return best;
     }
 
+    static boolean shouldSimulateSelectedFrame(boolean simulationEnabled, boolean frameInSelectedArea) {
+        return simulationEnabled && frameInSelectedArea;
+    }
+
     static boolean hostMustStand(int total, boolean hasCards, boolean simulationEnabled) {
         return simulationEnabled && hasCards && total >= 17;
     }
