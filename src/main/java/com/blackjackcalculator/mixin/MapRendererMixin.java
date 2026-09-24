@@ -16,8 +16,7 @@ public abstract class MapRendererMixin {
     @ModifyVariable(
             method = "update",
             at = @At("HEAD"),
-            argsOnly = true,
-            ordinal = 1
+            argsOnly = true
     )
     private MapState blackjack$replaceMapState(MapState actualState) {
         ItemFrameEntity frame = MapSimulationRenderContext.currentFrame();
