@@ -1,10 +1,8 @@
 package com.blackjackcalculator;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 public final class MapSimulationSelection {
     private MapSimulationSelection() {}
@@ -12,10 +10,9 @@ public final class MapSimulationSelection {
     /**
      * Builds a one-to-one simulation mapping of scanned map ids.
      *
-     * The mapping is a derangement when there is more than one stored map:
-     * every simulated card comes from a different stored representation.
-     * This removes the old fixed "next map" bias while keeping the same
-     * simulation for every frame until the simulation is toggled or rescanned.
+     * The mapping is a one-to-one derangement that follows the exact scanned
+     * dispenser order: each card uses the next scanned representation, wrapping
+     * the last card back to the first.
      */
     public static Map<Integer, Integer> buildPermutation(List<Integer> knownMapIds, long seed) {
         if (knownMapIds == null || knownMapIds.isEmpty()) return Map.of();
