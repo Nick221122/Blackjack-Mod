@@ -33,6 +33,14 @@ class BlackjackCalculatorClientTest {
     }
 
     @Test
+    void simulationCannotToggleWhileEitherSelectedAreaContainsCards() {
+        assertEquals(false, BlackjackCalculatorClient.canToggleMapSimulation(true, false));
+        assertEquals(false, BlackjackCalculatorClient.canToggleMapSimulation(false, true));
+        assertEquals(false, BlackjackCalculatorClient.canToggleMapSimulation(true, true));
+        assertEquals(true, BlackjackCalculatorClient.canToggleMapSimulation(false, false));
+    }
+
+    @Test
     void simulationToggleDetectsOnlyThePressEdge() {
         assertTrue(BlackjackCalculatorClient.isNewMapSimulationKeyPress(true, false));
         assertEquals(false, BlackjackCalculatorClient.isNewMapSimulationKeyPress(true, true));
