@@ -3,5 +3,6 @@
   "key.blackjackcalculator.assign_host": "Select Item Frame as Host",
   "key.blackjackcalculator.assign_viewer": "Select Item Frame as Viewer",
   "key.blackjackcalculator.edit_hud": "Edit HUD Positions",
-  "button.blackjackcalculator.scan": "Scan"
+  "button.blackjackcalculator.scan": "Scan",
+  "key.blackjackcalculator.toggle_map_simulation": "Toggle Client Map Simulation"
 }
