@@ -21,6 +21,20 @@ class BlackjackScoreTest {
     }
 
     @Test
+    void simulationNeverLetsViewerBust() {
+        assertEquals(20, BlackjackScore.simulationViewerTotal(20, true));
+        assertEquals(20, BlackjackScore.simulationViewerTotal(22, true));
+        assertEquals(20, BlackjackScore.simulationViewerTotal(40, true));
+    }
+
+    @Test
+    void simulationMakesHostWinWhenBothHandsHaveCards() {
+        assertEquals(21, BlackjackScore.simulationHostTotal(18, 16, true, true));
+        assertEquals(21, BlackjackScore.simulationHostTotal(18, 20, true, true));
+        assertEquals(0, BlackjackScore.simulationHostTotal(18, 0, true, false));
+    }
+
+    @Test
     void displaysBust() {
         assertEquals("BUST", BlackjackScore.display(22, true));
     }
