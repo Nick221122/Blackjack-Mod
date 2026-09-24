@@ -10,7 +10,6 @@ import net.minecraft.util.math.BlockPos;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -23,6 +22,7 @@ public final class BlackjackConfig {
     private static float hostScale = 1.0f, viewerScale = 1.0f;
     private static String hostName = "Host", viewerName = "Viewer";
     private static final Map<String, Integer> SHARED_SCANNED_MAPS = new LinkedHashMap<>();
+    private static final Map<String, String> SAVED_MAP_IMAGES = new LinkedHashMap<>();
     private static String hostFirstFrame, hostSecondFrame, viewerFirstFrame, viewerSecondFrame;
     private static boolean loaded;
 
@@ -31,7 +31,7 @@ public final class BlackjackConfig {
     public static void load(MinecraftClient client) {
         if (loaded) return;
         loaded = true;
-        Path path = client.runDirectory.toPath().resolve(FILE_NAME);
+        var path = client.runDirectory.toPath().resolve(FILE_NAME);
         if (!Files.exists(path)) return;
         try {
             JsonObject root = JsonParser.parseReader(Files.newBufferedReader(path)).getAsJsonObject();
@@ -47,7 +47,8 @@ public final class BlackjackConfig {
             hostSecondFrame = getString(root, "hostSecondFrame");
             viewerFirstFrame = getString(root, "viewerFirstFrame");
             viewerSecondFrame = getString(root, "viewerSecondFrame");
-            if (root.has("sharedScannedMaps") && root.get("sharedScannedMaps").isJsonObject()) loadMap(root, "sharedScannedMaps", SHARED_SCANNED_MAPS);
+            loadIntMap(root, "sharedScannedMaps", SHARED_SCANNED_MAPS);
+            loadStringMap(root, "savedMapImages", SAVED_MAP_IMAGES);
         } catch (Exception ignored) {}
     }
 
@@ -55,11 +56,14 @@ public final class BlackjackConfig {
         return root.has(key) && !root.get(key).isJsonNull() ? root.get(key).getAsString() : null;
     }
 
-    private static void loadMap(JsonObject root, String key, Map<String, Integer> target) {
+    private static void loadIntMap(JsonObject root, String key, Map<String, Integer> target) {
         if (!root.has(key) || !root.get(key).isJsonObject()) return;
-        root.getAsJsonObject(key).entrySet().forEach(e -> {
-            try { target.put(e.getKey(), e.getValue().getAsInt()); } catch (Exception ignored) {}
-        });
+        root.getAsJsonObject(key).entrySet().forEach(e -> { try { target.put(e.getKey(), e.getValue().getAsInt()); } catch (Exception ignored) {} });
+    }
+
+    private static void loadStringMap(JsonObject root, String key, Map<String, String> target) {
+        if (!root.has(key) || !root.get(key).isJsonObject()) return;
+        root.getAsJsonObject(key).entrySet().forEach(e -> { try { target.put(e.getKey(), e.getValue().getAsString()); } catch (Exception ignored) {} });
     }
 
     public static void save(MinecraftClient client) {
@@ -74,10 +78,14 @@ public final class BlackjackConfig {
         if (viewerFirstFrame != null) root.addProperty("viewerFirstFrame", viewerFirstFrame);
         if (viewerSecondFrame != null) root.addProperty("viewerSecondFrame", viewerSecondFrame);
         JsonObject scanned = new JsonObject(); SHARED_SCANNED_MAPS.forEach(scanned::addProperty); root.add("sharedScannedMaps", scanned);
+        JsonObject images = new JsonObject(); SAVED_MAP_IMAGES.forEach(images::addProperty); root.add("savedMapImages", images);
         try { Files.writeString(client.runDirectory.toPath().resolve(FILE_NAME), GSON.toJson(root)); } catch (IOException ignored) {}
     }
 
-    /** Stable selection key based on block position instead of an entity UUID. */
+    public static void saveMapImage(String mapId, byte[] colors) {
+        if (mapId != null && colors != null) SAVED_MAP_IMAGES.put(mapId, java.util.Base64.getEncoder().encodeToString(colors));
+    }
+
     public static String selectionKey(ItemFrameEntity frame) {
         BlockPos p = frame.getBlockPos();
         return p.getX() + "|" + p.getY() + "|" + p.getZ();
@@ -97,6 +105,7 @@ public final class BlackjackConfig {
     public static void clearSelection(Role role) { if (role == Role.HOST) { hostFirstFrame = null; hostSecondFrame = null; } else { viewerFirstFrame = null; viewerSecondFrame = null; } }
 
     public static int getScannedMapValue(String mapId) { Integer value = SHARED_SCANNED_MAPS.get(mapId); return value == null ? -1 : value; }
+    public static String getMapIdForValue(int value) { for (var e : SHARED_SCANNED_MAPS.entrySet()) if (e.getValue() == value) return e.getKey(); return null; }
     public static void replaceSharedScan(Map<String, Integer> values) { SHARED_SCANNED_MAPS.clear(); SHARED_SCANNED_MAPS.putAll(values); }
     public static String getHostName() { return hostName; }
     public static String getViewerName() { return viewerName; }
