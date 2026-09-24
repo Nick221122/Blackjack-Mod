@@ -6,6 +6,7 @@
   "client": [
     "HeartTypeAccessor",
     "ClientWorldMixin",
+    "DrawContextMixin",
     "InGameHudMixin",
     "ItemFrameEntityRendererMixin"
   ],
