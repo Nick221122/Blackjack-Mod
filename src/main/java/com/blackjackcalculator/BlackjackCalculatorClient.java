@@ -118,7 +118,18 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         return pressed && !wasPressed;
     }
 
+    static boolean canToggleMapSimulation(boolean hostAreaOccupied, boolean viewerAreaOccupied) {
+        return !hostAreaOccupied && !viewerAreaOccupied;
+    }
+
     private static void toggleMapSimulation(MinecraftClient client) {
+        if (!canToggleMapSimulation(hasOccupiedSelectedArea(client, BlackjackConfig.Role.HOST),
+                hasOccupiedSelectedArea(client, BlackjackConfig.Role.VIEWER))) {
+            if (client.player != null) {
+                client.player.sendMessage(Text.literal("Empty the Host and Viewer areas before toggling Map simulation."), true);
+            }
+            return;
+        }
         MapSimulationStore.toggle();
         updateTotals(client);
         if (client.player != null) {
@@ -256,6 +267,18 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
                     viewerHasCards
             );
         }
+    }
+
+    private static boolean hasOccupiedSelectedArea(MinecraftClient client, BlackjackConfig.Role role) {
+        if (client.world == null || client.player == null) return false;
+        Box box = client.player.getBoundingBox().expand(SCAN_RADIUS);
+        for (ItemFrameEntity frame : client.world.getEntitiesByClass(
+                ItemFrameEntity.class,
+                box,
+                frame -> !frame.isRemoved() && !frame.getHeldItemStack().isEmpty())) {
+            if (isFrameInsideSelection(client, frame, role)) return true;
+        }
+        return false;
     }
 
     public static boolean isFrameInSelectedArea(MinecraftClient client, ItemFrameEntity frame) {
