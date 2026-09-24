@@ -18,7 +18,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -107,7 +106,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
         while (mapSimulationKey.wasPressed()) {
-            if (!isMapSimulationToggleBlocked(isTargetingItemFrame(client))) {
+            if (!isMapSimulationToggleBlocked(hasFilledItemFrame(client))) {
                 toggleMapSimulation(client);
             }
         }
@@ -118,9 +117,16 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         return lookingAtItemFrame;
     }
 
-    private static boolean isTargetingItemFrame(MinecraftClient client) {
-        return client.crosshairTarget instanceof EntityHitResult hit
-                && hit.getEntity() instanceof ItemFrameEntity;
+    private static boolean hasFilledItemFrame(MinecraftClient client) {
+        if (client.world == null) return false;
+        for (Entity entity : client.world.getEntities()) {
+            if (entity instanceof ItemFrameEntity frame
+                    && !frame.isRemoved()
+                    && !frame.getHeldItemStack().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void toggleMapSimulation(MinecraftClient client) {
