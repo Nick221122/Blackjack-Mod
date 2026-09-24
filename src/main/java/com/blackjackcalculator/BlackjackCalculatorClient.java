@@ -104,6 +104,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignHostKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.HOST);
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
+        MapSimulationHud.resetHeartSuppression();
         boolean rPressed = GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
         if (isNewMapSimulationKeyPress(rPressed, mapSimulationKeyDown)
                 && !isMapSimulationToggleBlocked(hasFilledItemFrame(client))) {
@@ -117,16 +118,23 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         return pressed && !wasPressed;
     }
 
-    static boolean isMapSimulationToggleBlocked(boolean hasFilledItemFrame) {
-        return hasFilledItemFrame;
+    static boolean isMapSimulationToggleBlocked(boolean hasFilledHostSelection, boolean hasFilledViewerSelection) {
+        return hasFilledHostSelection || hasFilledViewerSelection;
     }
 
-    private static boolean hasFilledItemFrame(MinecraftClient client) {
+    private static boolean isMapSimulationToggleBlocked(MinecraftClient client) {
+        return isMapSimulationToggleBlocked(
+                hasFilledSelectedItemFrame(client, BlackjackConfig.Role.HOST),
+                hasFilledSelectedItemFrame(client, BlackjackConfig.Role.VIEWER));
+    }
+
+    private static boolean hasFilledSelectedItemFrame(MinecraftClient client, BlackjackConfig.Role role) {
         if (client.world == null) return false;
         for (Entity entity : client.world.getEntities()) {
             if (entity instanceof ItemFrameEntity frame
                     && !frame.isRemoved()
-                    && !frame.getHeldItemStack().isEmpty()) {
+                    && !frame.getHeldItemStack().isEmpty()
+                    && isFrameInsideSelection(client, frame, role)) {
                 return true;
             }
         }
