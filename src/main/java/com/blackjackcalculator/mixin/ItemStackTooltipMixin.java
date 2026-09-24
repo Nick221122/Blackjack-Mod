@@ -18,7 +18,7 @@ import java.util.List;
 @Mixin(ItemStack.class)
 public abstract class ItemStackTooltipMixin {
     @Inject(
-            method = "getTooltip(Lnet/minecraft/item/Item$TooltipContext;Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/item/tooltip/TooltipType;)Ljava/util/List;",
+            method = "getTooltip",
             at = @At("RETURN")
     )
     private void blackjack$appendSimulationValue(
