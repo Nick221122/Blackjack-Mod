@@ -49,6 +49,16 @@ public final class MapSimulationStore {
         return displayId == null ? null : REPRESENTATIONS.get(displayId);
     }
 
+    /** Returns the fake card value that corresponds to the simulated map shown for this frame. */
+    public static Integer resolveValue(MapIdComponent actualMapId) {
+        if (!enabled || actualMapId == null) return null;
+        return MapSimulationSelection.selectMappedValue(
+                actualMapId.id(),
+                SIMULATION_MAPPING,
+                BlackjackConfig.getScannedMapValuesById()
+        );
+    }
+
     private static void rebuildSimulationMapping() {
         SIMULATION_MAPPING = MapSimulationSelection.buildPermutation(
                 List.copyOf(REPRESENTATIONS.keySet()),
