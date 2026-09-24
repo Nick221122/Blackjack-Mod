@@ -41,6 +41,14 @@ class BlackjackCalculatorClientTest {
     }
 
     @Test
+    void mapSimulationRequiresAnEnabledToggleAndSelectedArea() {
+        assertTrue(BlackjackCalculatorClient.shouldSimulateSelectedFrame(true, true));
+        assertEquals(false, BlackjackCalculatorClient.shouldSimulateSelectedFrame(false, true));
+        assertEquals(false, BlackjackCalculatorClient.shouldSimulateSelectedFrame(true, false));
+        assertEquals(false, BlackjackCalculatorClient.shouldSimulateSelectedFrame(false, false));
+    }
+
+    @Test
     void resetHudResolvesHostToRightAndViewerToLeft() {
         assertEquals(142, BlackjackCalculatorClient.resolveHudX(true, -1, 50, 200));
         assertEquals(8, BlackjackCalculatorClient.resolveHudX(false, 8, 50, 200));
