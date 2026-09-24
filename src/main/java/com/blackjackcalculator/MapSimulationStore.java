@@ -22,10 +22,6 @@ public final class MapSimulationStore {
 
     private MapSimulationStore() {}
 
-    public static void setEnabled(boolean value) {
-        enabled = value;
-    }
-
     public static boolean isEnabled() {
         return enabled;
     }
@@ -36,15 +32,6 @@ public final class MapSimulationStore {
 
     public static void clear() {
         REPRESENTATIONS.clear();
-    }
-
-    public static int size() {
-        return REPRESENTATIONS.size();
-    }
-
-    public static void scan(MapIdComponent mapId, MapState state) {
-        if (mapId == null || state == null) return;
-        REPRESENTATIONS.put(mapId, state);
     }
 
     public static MapState resolve(MapIdComponent actualMapId) {
@@ -74,7 +61,7 @@ public final class MapSimulationStore {
             MapState state = client.world.getMapState(mapId);
             if (state == null) continue;
 
-            scan(mapId, state);
+            REPRESENTATIONS.put(mapId, state);
             scanned++;
         }
         return scanned;
