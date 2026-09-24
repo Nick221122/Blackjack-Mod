@@ -13,6 +13,19 @@ public final class BlackjackScore {
         return total;
     }
 
+    /** Returns a simulation-safe total that never exceeds 20, preserving the player's count. */
+    public static int simulationViewerTotal(int total, boolean hasCards) {
+        if (!hasCards) return 0;
+        return Math.min(20, Math.max(0, total));
+    }
+
+    /** In win mode the host must finish above the viewer whenever the viewer has cards. */
+    public static int simulationHostTotal(int hostTotal, int viewerTotal, boolean hostHasCards, boolean viewerHasCards) {
+        if (!hostHasCards) return 0;
+        int safeViewer = simulationViewerTotal(viewerTotal, viewerHasCards);
+        return viewerHasCards ? Math.max(21, safeViewer + 1) : Math.max(0, hostTotal);
+    }
+
     public static String display(int total, boolean hasCards) {
         if (!hasCards) return "-";
         if (total > 21) return "BUST";
