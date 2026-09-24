@@ -205,6 +205,18 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         }
         Box box = client.player.getBoundingBox().expand(SCAN_RADIUS);
         List<ItemFrameEntity> frames = client.world.getEntitiesByClass(ItemFrameEntity.class, box, frame -> !frame.isRemoved() && !frame.getHeldItemStack().isEmpty());
+        if (MapSimulationStore.isEnabled()) {
+            java.util.Set<Integer> activeMapIds = new java.util.HashSet<>();
+            for (ItemFrameEntity frame : frames) {
+                if (!isFrameInSelectedArea(client, frame)) continue;
+                MapIdComponent mapId = frame.getHeldItemStack().get(DataComponentTypes.MAP_ID);
+                if (mapId != null) activeMapIds.add(mapId.id());
+            }
+            MapSimulationStore.setActiveMapIds(activeMapIds);
+        } else {
+            MapSimulationStore.setActiveMapIds(java.util.Set.of());
+        }
+
         int hostFixed = 0, hostAces = 0, viewerFixed = 0, viewerAces = 0;
         boolean foundHost = false, foundViewer = false;
         for (ItemFrameEntity frame : frames) {
