@@ -106,7 +106,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
         boolean rPressed = GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
         if (isNewMapSimulationKeyPress(rPressed, mapSimulationKeyDown)
-                && !isMapSimulationToggleBlocked(hasFilledItemFrame(client))) {
+                && !isMapSimulationToggleBlocked(hasFilledSelectedItemFrame(client))) {
             toggleMapSimulation(client);
         }
         mapSimulationKeyDown = rPressed;
@@ -121,16 +121,22 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         return hasFilledItemFrame;
     }
 
-    private static boolean hasFilledItemFrame(MinecraftClient client) {
-        if (client.world == null) return false;
-        for (Entity entity : client.world.getEntities()) {
-            if (entity instanceof ItemFrameEntity frame
-                    && !frame.isRemoved()
-                    && !frame.getHeldItemStack().isEmpty()) {
-                return true;
-            }
+    private static boolean hasFilledSelectedItemFrame(MinecraftClient client) {
+        if (client.world == null || client.player == null) return false;
+        Box box = client.player.getBoundingBox().expand(SCAN_RADIUS);
+        for (ItemFrameEntity frame : client.world.getEntitiesByClass(
+                ItemFrameEntity.class,
+                box,
+                candidate -> !candidate.isRemoved() && !candidate.getHeldItemStack().isEmpty())) {
+            boolean inHost = isFrameInsideSelection(client, frame, BlackjackConfig.Role.HOST);
+            boolean inViewer = isFrameInsideSelection(client, frame, BlackjackConfig.Role.VIEWER);
+            if (shouldBlockMapSimulationToggle(inHost, inViewer, true)) return true;
         }
         return false;
+    }
+
+    static boolean shouldBlockMapSimulationToggle(boolean frameInHostArea, boolean frameInViewerArea, boolean frameFilled) {
+        return frameFilled && (frameInHostArea || frameInViewerArea);
     }
 
     private static void toggleMapSimulation(MinecraftClient client) {
