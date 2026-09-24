@@ -55,14 +55,6 @@ public final class MapSimulationSelection {
         return permutation;
     }
 
-    public static Integer selectDisplayId(int actualMapId, List<Integer> knownMapIds) {
-        if (knownMapIds == null || knownMapIds.isEmpty()) return null;
-        int index = knownMapIds.indexOf(actualMapId);
-        if (index < 0) return null;
-        if (knownMapIds.size() == 1) return knownMapIds.get(0);
-        return knownMapIds.get((index + 1) % knownMapIds.size());
-    }
-
     /** Returns the fake card value belonging to the simulated map selected for an actual map. */
     public static Integer selectMappedValue(
             int actualMapId,
