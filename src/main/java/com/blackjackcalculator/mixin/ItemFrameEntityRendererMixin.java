@@ -14,13 +14,13 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ItemFrameEntityRenderer.class)
-public abstract class ItemFrameEntityRendererMixin<T extends ItemFrameEntity> {
+public abstract class ItemFrameEntityRendererMixin {
     @Shadow
     private MapRenderer mapRenderer;
 
     @Inject(method = "updateRenderState", at = @At("RETURN"))
     private void blackjack$applySimulation(
-            T frame,
+            ItemFrameEntity frame,
             ItemFrameEntityRenderState renderState,
             float tickDelta,
             CallbackInfo ci
@@ -31,6 +31,8 @@ public abstract class ItemFrameEntityRendererMixin<T extends ItemFrameEntity> {
                 MapSimulationStore.isEnabled(), selected)) {
             return;
         }
+
+        if (renderState.mapId == null) return;
 
         MapState simulatedState = MapSimulationStore.resolve(renderState.mapId);
         if (simulatedState != null) {
