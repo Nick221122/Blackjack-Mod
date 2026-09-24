@@ -14,8 +14,8 @@ class MapSimulationToggleTest {
     }
 
     @Test
-    void allowsToggleWhenAllItemFramesAreEmpty() {
-        assertFalse(BlackjackCalculatorClient.isMapSimulationToggleBlocked(false));
+    void allowsToggleWhenAllSelectedItemFramesAreEmpty() {
+        assertFalse(BlackjackCalculatorClient.isMapSimulationToggleBlocked(false, false));
     }
 
     @Test
