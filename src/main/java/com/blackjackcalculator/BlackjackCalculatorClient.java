@@ -105,8 +105,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignHostKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.HOST);
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
-        boolean simulationKeyPressed = client.currentScreen == null
-                && GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
+        boolean simulationKeyPressed =
+                GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
         if (isNewMapSimulationKeyPress(simulationKeyPressed, mapSimulationKeyDown)) {
             toggleMapSimulation(client);
         }
@@ -290,10 +290,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     }
 
     private static String hostDisplay() {
-        if (MapSimulationStore.isEnabled() && hostMustStand(hostTotal, hostHasCards, true)) {
-            return Integer.toString(hostTotal);
-        }
-        return BlackjackScore.display(hostTotal, hostHasCards);
+        return BlackjackScore.displayHost(hostTotal, hostHasCards);
     }
 
     public static int getHostTotal() { return hostTotal; }
