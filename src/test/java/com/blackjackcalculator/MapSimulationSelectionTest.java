@@ -35,6 +35,25 @@ class MapSimulationSelectionTest {
     }
 
     @Test
+    void simulatedValueComesFromTheMappedFakeCardValue() {
+        Map<Integer, Integer> mapping = Map.of(10, 20, 20, 30, 30, 10);
+        Map<Integer, Integer> fakeValues = Map.of(10, 11, 20, 10, 30, 5);
+
+        assertEquals(10, MapSimulationSelection.selectMappedValue(10, mapping, fakeValues));
+        assertEquals(5, MapSimulationSelection.selectMappedValue(20, mapping, fakeValues));
+        assertEquals(11, MapSimulationSelection.selectMappedValue(30, mapping, fakeValues));
+        assertNull(MapSimulationSelection.selectMappedValue(999, mapping, fakeValues));
+    }
+
+    @Test
+    void simulatedValueDoesNotFallBackToTheRealMapValue() {
+        Map<Integer, Integer> mapping = Map.of(10, 20);
+        Map<Integer, Integer> fakeValues = Map.of(10, 3, 20, 9);
+
+        assertEquals(9, MapSimulationSelection.selectMappedValue(10, mapping, fakeValues));
+    }
+
+    @Test
     void unknownMapIdsAreNotSimulated() {
         assertNull(MapSimulationSelection.selectDisplayId(999, List.of(10, 20)));
     }
