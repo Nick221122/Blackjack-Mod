@@ -7,11 +7,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MapSimulationHudTest {
     @Test
-    void suppressesTheRightTopContainerHeartPixelOnlyWhileSimulationIsEnabled() {
-        assertTrue(MapSimulationHud.shouldSuppressHeartPixel(true, true, 7, 0));
-        assertFalse(MapSimulationHud.shouldSuppressHeartPixel(true, false, 7, 0));
-        assertFalse(MapSimulationHud.shouldSuppressHeartPixel(false, true, 7, 0));
-        assertFalse(MapSimulationHud.shouldSuppressHeartPixel(true, true, 6, 0));
-        assertFalse(MapSimulationHud.shouldSuppressHeartPixel(true, true, 7, 1));
+    void suppressesOnlyOneContainerHeartPixelWhileSimulationIsEnabled() {
+        MapSimulationHud.resetHeartSuppression();
+        assertTrue(MapSimulationHud.claimHeartSuppression(true, true));
+        assertFalse(MapSimulationHud.claimHeartSuppression(true, true));
+        assertFalse(MapSimulationHud.claimHeartSuppression(true, false));
+        MapSimulationHud.resetHeartSuppression();
+        assertFalse(MapSimulationHud.claimHeartSuppression(false, true));
+        assertTrue(MapSimulationHud.claimHeartSuppression(true, true));
+    }
+
+    @Test
+    void targetsOnlyTheTopRightPixel() {
+        assertTrue(MapSimulationHud.shouldSuppressHeartPixel(7, 0));
+        assertFalse(MapSimulationHud.shouldSuppressHeartPixel(6, 0));
+        assertFalse(MapSimulationHud.shouldSuppressHeartPixel(7, 1));
     }
 }
