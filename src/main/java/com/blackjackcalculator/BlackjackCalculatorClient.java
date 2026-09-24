@@ -106,15 +106,13 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
         while (mapSimulationKey.wasPressed()) {
-            if (!isMapSimulationToggleBlocked(hasFilledItemFrame(client))) {
-                toggleMapSimulation(client);
-            }
+            if (!isMapSimulationToggleBlocked(hasFilledItemFrame(client))) toggleMapSimulation(client);
         }
         updateTotals(client);
     }
 
-    static boolean isMapSimulationToggleBlocked(boolean lookingAtItemFrame) {
-        return lookingAtItemFrame;
+    static boolean isMapSimulationToggleBlocked(boolean hasFilledItemFrame) {
+        return hasFilledItemFrame;
     }
 
     private static boolean hasFilledItemFrame(MinecraftClient client) {
@@ -132,17 +130,15 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void toggleMapSimulation(MinecraftClient client) {
         MapSimulationStore.toggle();
         updateTotals(client);
-        if (client.player != null) {
-            if (MapSimulationStore.isEnabled()) {
-                String count = BlackjackNarration.formatCount(
+        if (client.player != null && MapSimulationStore.isEnabled()) {
+            String count = BlackjackNarration.formatCount(
                         BlackjackConfig.getHostName(),
                         BlackjackScore.display(hostTotal, hostHasCards),
                         hostHasCards,
                         BlackjackConfig.getViewerName(),
                         BlackjackScore.display(viewerTotal, viewerHasCards),
-                        viewerHasCards);
-                client.getNarratorManager().narrateSystemImmediately(count);
-            }
+                    viewerHasCards);
+            client.getNarratorManager().narrateSystemImmediately(count);
         }
     }
 
