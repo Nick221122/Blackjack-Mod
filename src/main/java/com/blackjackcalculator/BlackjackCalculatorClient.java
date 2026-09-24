@@ -40,9 +40,9 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static KeyBinding assignViewerKey;
     private static KeyBinding editHudKey;
     private static KeyBinding scanContainerKey;
-    private static KeyBinding mapSimulationKey;
     private static int hostTotal, viewerTotal;
     private static boolean hostHasCards, viewerHasCards;
+    private static boolean mapSimulationKeyDown;
 
     @Override
     public void onInitializeClient() {
@@ -53,7 +53,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         assignViewerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_viewer", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_U, category));
         editHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.edit_hud", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_P, category));
         scanContainerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.scan_container", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, category));
-        mapSimulationKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.toggle_map_simulation", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, category));
         ClientTickEvents.END_CLIENT_TICK.register(BlackjackCalculatorClient::onClientTick);
         ScreenEvents.BEFORE_INIT.register((client1, screen, scaledWidth, scaledHeight) -> {
             ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, context) -> {
@@ -105,10 +104,17 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignHostKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.HOST);
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
-        while (mapSimulationKey.wasPressed()) {
-            if (!isMapSimulationToggleBlocked(hasFilledItemFrame(client))) toggleMapSimulation(client);
+        boolean rPressed = GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
+        if (isNewMapSimulationKeyPress(rPressed, mapSimulationKeyDown)
+                && !isMapSimulationToggleBlocked(hasFilledItemFrame(client))) {
+            toggleMapSimulation(client);
         }
+        mapSimulationKeyDown = rPressed;
         updateTotals(client);
+    }
+
+    static boolean isNewMapSimulationKeyPress(boolean pressed, boolean wasPressed) {
+        return pressed && !wasPressed;
     }
 
     static boolean isMapSimulationToggleBlocked(boolean hasFilledItemFrame) {
