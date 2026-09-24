@@ -55,16 +55,17 @@ public final class MapSimulationSelection {
         return permutation;
     }
 
-    /**
-     * Returns the next scanned representation only for a map that was scanned.
-     * Kept as the simple selection helper used by callers/tests that do not
-     * need a generated permutation.
-     */
     public static Integer selectDisplayId(int actualMapId, List<Integer> knownMapIds) {
         if (knownMapIds == null || knownMapIds.isEmpty()) return null;
         int index = knownMapIds.indexOf(actualMapId);
         if (index < 0) return null;
         if (knownMapIds.size() == 1) return knownMapIds.get(0);
         return knownMapIds.get((index + 1) % knownMapIds.size());
+    }
+
+    /** Returns the simulated map id for an already-built simulation mapping. */
+    public static Integer selectDisplayId(int actualMapId, Map<Integer, Integer> mapping) {
+        if (mapping == null) return null;
+        return mapping.get(actualMapId);
     }
 }
