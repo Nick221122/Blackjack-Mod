@@ -12,6 +12,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 class MapSimulationSelectionTest {
     @Test
+    void simulationPermutationFollowsTheScannedDispenserOrder() {
+        List<Integer> ids = List.of(10, 20, 30);
+
+        assertEquals(Map.of(10, 20, 20, 30, 30, 10), MapSimulationSelection.buildPermutation(ids, 12345L));
+    }
+
+    @Test
     void simulationPermutationUsesEveryStoredRepresentationWithoutKeepingTheSameMap() {
         List<Integer> ids = List.of(10, 20, 30);
         Map<Integer, Integer> permutation = MapSimulationSelection.buildPermutation(ids, 12345L);
