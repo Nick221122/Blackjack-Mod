@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Random;
 
 public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static final String MOD_ID = "blackjackcalculator";
@@ -43,11 +44,12 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static final double SELECTION_HIT_EXPANSION = 0.5D;
     private static final int[] SCAN_VALUES = {11, 3, 4, 5, 6, 7, 8, 9, 10};
 
-    private static KeyBinding forceHostWinKey;
     private static KeyBinding editHudKey;
     private static int hostTotal, viewerTotal;
     private static boolean hostHasCards, viewerHasCards;
     private static boolean forceHostWin;
+    private static boolean rWasDown;
+    private static final Random FAKE_RANDOM = new Random();
     private static final Map<String, ItemStack> ORIGINAL_FRAME_STACKS = new HashMap<>();
     private static final Map<Integer, ItemStack> ORIGINAL_DROPPED_STACKS = new HashMap<>();
 
@@ -56,7 +58,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         MinecraftClient client = MinecraftClient.getInstance();
         BlackjackConfig.load(client);
         KeyBinding.Category category = KeyBinding.Category.create(Identifier.of(MOD_ID, "controls"));
-        forceHostWinKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.force_host_win", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_H, category));
         editHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.edit_hud", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_P, category));
         ClientTickEvents.END_CLIENT_TICK.register(BlackjackCalculatorClient::onClientTick);
         HudElementRegistry.addLast(HUD_ID, BlackjackCalculatorClient::renderHud);
@@ -109,7 +110,9 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     }
 
     private static void onClientTick(MinecraftClient client) {
-        while (forceHostWinKey.wasPressed()) toggleForceHostWin(client);
+        boolean rDown = GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
+        if (rDown && !rWasDown) toggleForceHostWin(client);
+        rWasDown = rDown;
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
         if (forceHostWin) applyLocalFakeCards(client); else restoreLocalFakeCards(client);
         updateTotals(client);
@@ -117,7 +120,14 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     private static void toggleForceHostWin(MinecraftClient client) {
         forceHostWin = !forceHostWin;
-        if (!forceHostWin) restoreLocalFakeCards(client);
+        if (forceHostWin) {
+            int[] totals = FakeCardService.randomizedWinningTotals(FAKE_RANDOM);
+            hostTotal = totals[0];
+            viewerTotal = totals[1];
+            hostHasCards = viewerHasCards = true;
+        } else {
+            restoreLocalFakeCards(client);
+        }
         if (client.player != null) client.player.sendMessage(Text.literal(forceHostWin ? "Host-win mode ON (local display only)." : "Host-win mode OFF."), true);
     }
 
@@ -160,7 +170,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     }
 
     private static void restoreLocalFakeCards(MinecraftClient client) {
-        if (client.world == null) return;
+        if (client.world == null || client.player == null) return;
         for (ItemFrameEntity frame : client.world.getEntitiesByClass(ItemFrameEntity.class, client.player.getBoundingBox().expand(SCAN_RADIUS), f -> !f.isRemoved())) {
             ItemStack original = ORIGINAL_FRAME_STACKS.get(BlackjackConfig.selectionKey(frame));
             if (original != null) frame.setHeldItemStack(original.copy());
@@ -208,8 +218,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void updateTotals(MinecraftClient client) {
         if (client.player == null || client.world == null) { hostTotal = viewerTotal = 0; hostHasCards = viewerHasCards = false; return; }
         if (forceHostWin) {
-            hostTotal = 21;
-            viewerTotal = 0;
+            hostHasCards = viewerHasCards = true;
             hostHasCards = true;
             viewerHasCards = true;
             return;
