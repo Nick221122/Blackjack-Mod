@@ -18,4 +18,9 @@ public final class BlackjackScore {
         if (total > 21) return "BUST";
         return Integer.toString(total);
     }
+
+    public static String displayHost(int total, boolean hasCards) {
+        if (!hasCards) return "-";
+        return Integer.toString(Math.min(total, 21));
+    }
 }
