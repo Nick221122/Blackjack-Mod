@@ -10,12 +10,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Client-only store of scanned map visual representations.
- *
- * The server-authoritative ItemStack is never changed. The scanned MapState
- * is only used as a local rendering source when simulation is enabled.
- */
 public final class MapSimulationStore {
     private static final Map<Integer, MapState> REPRESENTATIONS = new LinkedHashMap<>();
     private static boolean enabled;
@@ -32,6 +26,10 @@ public final class MapSimulationStore {
 
     public static void clear() {
         REPRESENTATIONS.clear();
+    }
+
+    static boolean shouldSimulateForFrame(boolean simulationEnabled, boolean selectedFrame, boolean hasRepresentation) {
+        return simulationEnabled && selectedFrame && hasRepresentation;
     }
 
     public static MapState resolve(MapIdComponent actualMapId) {
@@ -53,7 +51,7 @@ public final class MapSimulationStore {
             MapState state = client.world.getMapState(mapId);
             if (state == null) continue;
 
-            REPRESENTATIONS.put(mapId.id(), state);
+            REPRESENTATIONS.putIfAbsent(mapId.id(), state.copy());
             scanned++;
         }
         return scanned;
