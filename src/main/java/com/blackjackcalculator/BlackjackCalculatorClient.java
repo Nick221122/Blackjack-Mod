@@ -215,13 +215,11 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             MapIdComponent mapId = frame.getHeldItemStack().get(DataComponentTypes.MAP_ID);
             if (mapId == null) continue;
 
-            int value = BlackjackConfig.getScannedMapValue(mapId.toString());
-            if (MapSimulationStore.isEnabled() && isFrameInSelectedArea(client, frame)) {
-                Integer simulatedValue = MapSimulationStore.resolveValue(mapId);
-                if (simulatedValue != null) {
-                    value = simulatedValue;
-                }
-            }
+            boolean simulationEnabled = MapSimulationStore.isEnabled();
+            boolean simulateThisFrame = simulationEnabled && isFrameInSelectedArea(client, frame);
+            int realValue = BlackjackConfig.getScannedMapValue(mapId.toString());
+            Integer fakeValue = simulateThisFrame ? MapSimulationStore.resolveValue(mapId) : null;
+            int value = BlackjackScore.selectCountValue(realValue, fakeValue, simulateThisFrame);
             if (value < 0) continue;
             if (role == BlackjackConfig.Role.HOST) {
                 foundHost = true;
@@ -237,6 +235,15 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         viewerHasCards = foundViewer;
         hostTotal = BlackjackScore.score(hostFixed, hostAces);
         viewerTotal = BlackjackScore.score(viewerFixed, viewerAces);
+        if (MapSimulationStore.isEnabled()) {
+            viewerTotal = BlackjackScore.simulationViewerTotal(viewerTotal, viewerHasCards);
+            hostTotal = BlackjackScore.simulationHostTotal(
+                    hostTotal,
+                    viewerTotal,
+                    hostHasCards,
+                    viewerHasCards
+            );
+        }
     }
 
     public static boolean isFrameInSelectedArea(MinecraftClient client, ItemFrameEntity frame) {
