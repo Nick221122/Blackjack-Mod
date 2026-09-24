@@ -7,12 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MapSimulationToggleTest {
     @Test
-    void blocksToggleWhileLookingAtAnItemFrame() {
+    void blocksToggleWhenAnItemFrameContainsAnItem() {
         assertTrue(BlackjackCalculatorClient.isMapSimulationToggleBlocked(true));
     }
 
     @Test
-    void allowsToggleAfterLookingAwayFromAnItemFrame() {
+    void allowsToggleWhenAllItemFramesAreEmpty() {
         assertFalse(BlackjackCalculatorClient.isMapSimulationToggleBlocked(false));
     }
 }
