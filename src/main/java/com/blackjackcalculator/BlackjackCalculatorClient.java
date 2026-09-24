@@ -114,7 +114,6 @@ public final class BlackjackCalculatorClient {
         updateTotals(client);
         if (client.player != null) {
             String state = MapSimulationStore.isEnabled() ? "enabled" : "disabled";
-            client.player.sendMessage(Text.literal("Client map simulation " + state + "."), true);
             if (MapSimulationStore.isEnabled()) {
                 String count = BlackjackNarration.formatCount(
                         BlackjackConfig.getHostName(),
@@ -123,7 +122,7 @@ public final class BlackjackCalculatorClient {
                         BlackjackConfig.getViewerName(),
                         BlackjackScore.display(viewerTotal, viewerHasCards),
                         viewerHasCards);
-                client.getNarratorManager().narrateSystemImmediately(Text.literal(count));
+                client.getNarratorManager().narrateSystemImmediately(count);
             }
         }
     }
