@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ItemFrameEntityRenderer.class)
 public abstract class ItemFrameEntityRendererMixin {
-    @Inject(method = "updateRenderState", at = @At("HEAD"))
+    @Inject(method = "extractRenderState", at = @At("HEAD"))
     private void blackjack$setRenderFrame(ItemFrameEntity frame, ItemFrameEntityRenderState state, float tickDelta, CallbackInfo ci) {
         MapSimulationRenderContext.set(frame);
     }
