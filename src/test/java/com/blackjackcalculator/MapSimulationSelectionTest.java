@@ -3,16 +3,25 @@ package com.blackjackcalculator;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 class MapSimulationSelectionTest {
     @Test
-    void selectsTheNextStoredRepresentationForKnownMapIds() {
-        assertEquals(20, MapSimulationSelection.selectDisplayId(10, List.of(10, 20, 30)));
-        assertEquals(30, MapSimulationSelection.selectDisplayId(20, List.of(10, 20, 30)));
-        assertEquals(10, MapSimulationSelection.selectDisplayId(30, List.of(10, 20, 30)));
+    void simulationPermutationUsesEveryStoredRepresentationWithoutKeepingTheSameMap() {
+        List<Integer> ids = List.of(10, 20, 30);
+        Map<Integer, Integer> permutation = MapSimulationSelection.buildPermutation(ids, 12345L);
+
+        assertEquals(ids.size(), permutation.size());
+        assertEquals(ids.stream().sorted().toList(), permutation.keySet().stream().sorted().toList());
+        assertEquals(ids.stream().sorted().toList(), permutation.values().stream().sorted().toList());
+
+        for (int id : ids) {
+            assertNotEquals(id, permutation.get(id));
+        }
     }
 
     @Test
