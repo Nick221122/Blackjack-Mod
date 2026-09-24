@@ -41,7 +41,7 @@ public final class MapSimulationStore {
 
     public static Integer resolveDisplayId(MapIdComponent actualMapId) {
         if (!enabled || actualMapId == null || REPRESENTATIONS.isEmpty()) return null;
-        return MapSimulationSelection.selectDisplayId(actualMapId.id(), SIMULATION_MAPPING);
+        return MapSimulationSelection.selectMappedDisplayId(actualMapId.id(), SIMULATION_MAPPING);
     }
 
     public static MapState resolve(MapIdComponent actualMapId) {
