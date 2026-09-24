@@ -7,8 +7,9 @@ public final class MapSimulationHud {
 
     private MapSimulationHud() {}
 
-    public static boolean shouldSuppressHeartPixel(boolean simulationEnabled, int textureX, int textureY) {
+    public static boolean shouldSuppressHeartPixel(boolean simulationEnabled, boolean containerHeart, int textureX, int textureY) {
         return simulationEnabled
+                && containerHeart
                 && textureX == SUPPRESSED_HEART_PIXEL_X
                 && textureY == SUPPRESSED_HEART_PIXEL_Y;
     }
