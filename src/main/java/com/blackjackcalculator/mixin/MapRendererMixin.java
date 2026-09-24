@@ -4,6 +4,7 @@ import com.blackjackcalculator.BlackjackCalculatorClient;
 import com.blackjackcalculator.MapSimulationRenderContext;
 import com.blackjackcalculator.MapSimulationStore;
 import net.minecraft.component.type.MapIdComponent;
+import net.minecraft.client.render.MapRenderState;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.map.MapState;
 import org.spongepowered.asm.mixin.Mixin;
@@ -30,7 +31,7 @@ public abstract class MapRendererMixin {
     }
 
     @Inject(method = "update", at = @At("RETURN"))
-    private void blackjack$clearRenderFrame(MapIdComponent mapId, MapState mapState, Object renderState, CallbackInfo ci) {
+    private void blackjack$clearRenderFrame(MapIdComponent mapId, MapState mapState, MapRenderState renderState, CallbackInfo ci) {
         MapSimulationRenderContext.clear();
     }
 }
