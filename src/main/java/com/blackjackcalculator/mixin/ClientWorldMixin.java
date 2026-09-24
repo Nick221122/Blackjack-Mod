@@ -20,7 +20,9 @@ public abstract class ClientWorldMixin {
             MapIdComponent mapId,
             CallbackInfoReturnable<MapState> cir
     ) {
-        MapState fakeState = MapSimulationStore.resolve(mapId);
+        MapState fakeState = MapSimulationStore.isGuiMapRender()
+                ? MapSimulationStore.resolveGui(mapId)
+                : MapSimulationStore.resolve(mapId);
         if (shouldUseSimulationState(fakeState != null)) {
             cir.setReturnValue(fakeState);
         }
