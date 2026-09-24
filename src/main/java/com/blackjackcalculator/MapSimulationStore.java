@@ -24,6 +24,7 @@ public final class MapSimulationStore {
     private static Map<Integer, Integer> SIMULATION_MAPPING = Map.of();
     private static Set<Integer> ACTIVE_MAP_IDS = Set.of();
     private static boolean enabled;
+    private static int GUI_MAP_RENDER_DEPTH;
 
     private MapSimulationStore() {}
 
@@ -39,6 +40,40 @@ public final class MapSimulationStore {
             SIMULATION_MAPPING = Map.of();
             ACTIVE_MAP_IDS = Set.of();
         }
+    }
+
+    public static void beginGuiMapRender() {
+        GUI_MAP_RENDER_DEPTH++;
+    }
+
+    public static void endGuiMapRender() {
+        if (GUI_MAP_RENDER_DEPTH > 0) GUI_MAP_RENDER_DEPTH--;
+    }
+
+    public static boolean isGuiMapRender() {
+        return GUI_MAP_RENDER_DEPTH > 0;
+    }
+
+    public static MapState resolveGui(MapIdComponent actualMapId) {
+        if (!enabled || actualMapId == null || REPRESENTATIONS.isEmpty()) return null;
+        Integer displayId = MapSimulationSelection.selectMappedDisplayId(
+                actualMapId.id(),
+                SIMULATION_MAPPING
+        );
+        return displayId == null ? null : REPRESENTATIONS.get(displayId);
+    }
+
+    public static Integer resolveGuiValue(MapIdComponent actualMapId) {
+        if (!enabled || actualMapId == null) return null;
+        return MapSimulationSelection.selectMappedValue(
+                actualMapId.id(),
+                SIMULATION_MAPPING,
+                BlackjackConfig.getScannedMapValuesById()
+        );
+    }
+
+    public static boolean hasGuiSimulationForMap(MapIdComponent actualMapId) {
+        return resolveGui(actualMapId) != null;
     }
 
     public static void clear() {
