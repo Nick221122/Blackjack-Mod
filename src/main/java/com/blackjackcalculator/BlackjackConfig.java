@@ -19,7 +19,7 @@ public final class BlackjackConfig {
     public record FrameSelection(String firstKey, String secondKey) {}
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILE_NAME = "blackjackcalculator.json";
-    private static int hostX = 8, hostY = 8, viewerX = -1, viewerY = 8;
+    private static int hostX = -1, hostY = 8, viewerX = 8, viewerY = 8;
     private static float hostScale = 1.0f, viewerScale = 1.0f;
     private static String hostName = "Host", viewerName = "Viewer";
     private static final Map<String, Integer> SHARED_SCANNED_MAPS = new LinkedHashMap<>();
@@ -39,6 +39,11 @@ public final class BlackjackConfig {
             hostY = root.has("hostY") ? root.get("hostY").getAsInt() : hostY;
             viewerX = root.has("viewerX") ? root.get("viewerX").getAsInt() : viewerX;
             viewerY = root.has("viewerY") ? root.get("viewerY").getAsInt() : viewerY;
+            // Migrate the previous default HUD sides: Host was left and Viewer was right.
+            if (hostX == 8 && viewerX == -1) {
+                hostX = -1;
+                viewerX = 8;
+            }
             hostScale = root.has("hostScale") ? root.get("hostScale").getAsFloat() : hostScale;
             viewerScale = root.has("viewerScale") ? root.get("viewerScale").getAsFloat() : viewerScale;
             hostName = root.has("hostName") ? root.get("hostName").getAsString() : hostName;
@@ -112,5 +117,5 @@ public final class BlackjackConfig {
     public static int getViewerY() { return viewerY; }
     public static void setHostPosition(int x, int y) { hostX = x; hostY = y; }
     public static void setViewerPosition(int x, int y) { viewerX = x; viewerY = y; }
-    public static void resetPositions() { hostX = 8; hostY = 8; viewerX = -1; viewerY = 8; hostScale = 1.0f; viewerScale = 1.0f; }
+    public static void resetPositions() { hostX = -1; hostY = 8; viewerX = 8; viewerY = 8; hostScale = 1.0f; viewerScale = 1.0f; }
 }
