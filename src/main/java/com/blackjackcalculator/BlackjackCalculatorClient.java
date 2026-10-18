@@ -43,6 +43,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static KeyBinding assignViewerKey;
     private static KeyBinding editHudKey;
     private static KeyBinding mapSimulationKey;
+    private static KeyBinding scanContainerKey;
     private static int hostTotal, viewerTotal;
     private static boolean hostHasCards, viewerHasCards;
 
@@ -55,6 +56,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         assignViewerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_viewer", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_U, category));
         editHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.edit_hud", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_P, category));
         mapSimulationKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.toggle_map_simulation", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, category));
+        scanContainerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.scan_container", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_L, category));
         ClientTickEvents.END_CLIENT_TICK.register(BlackjackCalculatorClient::onClientTick);
         HudElementRegistry.addLast(HUD_ID, BlackjackCalculatorClient::renderHud);
         ScreenEvents.AFTER_INIT.register(BlackjackCalculatorClient::onScreenInit);
@@ -181,6 +183,11 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
         while (mapSimulationKey.wasPressed()) toggleMapSimulation(client);
+        while (scanContainerKey.wasPressed()) {
+            if (client.currentScreen != null && isDispenserOrDropperScreen(client.currentScreen)) {
+                scanOpenContainer(client, client.currentScreen);
+            }
+        }
         updateTotals(client);
     }
 
