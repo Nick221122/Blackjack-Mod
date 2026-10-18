@@ -30,7 +30,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static final double SCAN_RADIUS = 256.0D;
     private static final double SELECTION_RAY_DISTANCE = 256.0D;
     private static final double SELECTION_HIT_EXPANSION = 0.5D;
-    private static final int[] SCAN_VALUES = {11, 3, 4, 5, 6, 7, 8, 9, 10};
 
     private static KeyBinding assignHostKey;
     private static KeyBinding assignViewerKey;
