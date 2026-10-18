@@ -4,28 +4,26 @@ Fabric client-side mod for Minecraft 1.21.11.
 
 ## How it works
 
-Cards are simply custom-named items with names `1` through `10`. `1` is the Ace. 10 is a normal card worth 10 points.
+The mod scans card maps/papers in a dispenser or dropper and nearby item frames automatically. Card names are `1` through `10`; `1` is the Ace and `10` is worth 10 points. Host and Viewer totals are calculated separately from the frame layout.
 
-Host/Viewer is **not encoded in the paper name**. Instead, each item frame is assigned a role locally, so both Host and Viewer papers can come from the **same dispenser**.
-
-### Keybinds
+## Keybinds
 
 All keybinds appear under **Options → Controls → Key Binds → Blackjack Calculator** and can be changed there:
 
-- **Toggle Target Frame Host/Viewer** — default `H`. Look at an item frame and press the key. First press assigns Host, second press assigns Viewer, then it alternates. The key can be changed in Minecraft's Key Binds.
-- **Clear Target Frame Role** — default `K`. Look at an item frame and press the key to stop the frame from being counted.
-- **Edit HUD Positions** — default `P`. Opens an editor where Host and Viewer totals can be dragged anywhere on screen.
+- **Scan Container** — default `L`. Open a dispenser/dropper and press this to scan its 9 slots and the nearby item frames. The frame area on the left is Viewer; the area on the right is Host, with up to 9 frames per side.
+- **Edit HUD Positions** — default `P`. Opens the editor where Host and Viewer totals can be dragged anywhere on screen.
+- **Toggle Map Simulation** — default `R`. Toggles the map simulation feature.
 
-HUD positions and frame roles are saved locally in `blackjackcalculator.json` in the Minecraft game directory.
+There are no manual Host/Viewer frame-selection keybinds. Frame detection is handled by the scanner.
 
-### Blackjack scoring
+HUD positions and other local settings are saved in `blackjackcalculator.json` in the Minecraft game directory.
+
+## Blackjack scoring
 
 - Normal cards: `2`–`10`.
 - Ace: `1`, scored as 11 when possible and automatically reduced to 1 when 11 would cause a bust.
 - Multiple Aces are handled correctly.
 
-### One-dispenser setup
+## Build download
 
-You can keep all of your papers in one dispenser. Put any card paper into any frame, then use the Host/Viewer keybind while looking at that frame to assign its role.
-
-The same visible card name can be used on both sides. For example, a paper named `1` can be a Host Ace in one frame and a Viewer Ace in another frame.
+Open the [GitHub Actions build workflow](https://github.com/Nick221122/Blackjack-Mod/actions/workflows/build.yml?query=branch%3Adownload%2Fhost-viewer-scan-keybind), select the newest successful run for this branch, and download the `blackjack-calculator-1.21.11` artifact. Extract the ZIP to get the mod JAR.
