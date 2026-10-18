@@ -13,6 +13,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public final class BlackjackConfig {
     public enum Role { HOST, VIEWER }
@@ -24,6 +26,7 @@ public final class BlackjackConfig {
     private static String hostName = "Host", viewerName = "Viewer";
     private static final Map<String, Integer> SHARED_SCANNED_MAPS = new LinkedHashMap<>();
     private static String hostFirstFrame, hostSecondFrame, viewerFirstFrame, viewerSecondFrame;
+    private static final Map<Role, Set<String>> AUTO_SELECTED_FRAMES = new java.util.EnumMap<>(Role.class);
     private static boolean loaded;
 
     private BlackjackConfig() {}
@@ -47,12 +50,21 @@ public final class BlackjackConfig {
             hostSecondFrame = getString(root, "hostSecondFrame");
             viewerFirstFrame = getString(root, "viewerFirstFrame");
             viewerSecondFrame = getString(root, "viewerSecondFrame");
+            loadSelectedFrames(root, "hostSelectedFrames", Role.HOST);
+            loadSelectedFrames(root, "viewerSelectedFrames", Role.VIEWER);
             if (root.has("sharedScannedMaps") && root.get("sharedScannedMaps").isJsonObject()) loadMap(root, "sharedScannedMaps", SHARED_SCANNED_MAPS);
         } catch (Exception ignored) {}
     }
 
     private static String getString(JsonObject root, String key) {
         return root.has(key) && !root.get(key).isJsonNull() ? root.get(key).getAsString() : null;
+    }
+
+    private static void loadSelectedFrames(JsonObject root, String key, Role role) {
+        if (!root.has(key) || !root.get(key).isJsonArray()) return;
+        Set<String> positions = new LinkedHashSet<>();
+        root.getAsJsonArray(key).forEach(value -> { if (value.isJsonPrimitive()) positions.add(value.getAsString()); });
+        AUTO_SELECTED_FRAMES.put(role, positions);
     }
 
     private static void loadMap(JsonObject root, String key, Map<String, Integer> target) {
@@ -74,6 +86,8 @@ public final class BlackjackConfig {
         if (viewerFirstFrame != null) root.addProperty("viewerFirstFrame", viewerFirstFrame);
         if (viewerSecondFrame != null) root.addProperty("viewerSecondFrame", viewerSecondFrame);
         JsonObject scanned = new JsonObject(); SHARED_SCANNED_MAPS.forEach(scanned::addProperty); root.add("sharedScannedMaps", scanned);
+        addSelectedFrames(root, "hostSelectedFrames", Role.HOST);
+        addSelectedFrames(root, "viewerSelectedFrames", Role.VIEWER);
         try { Files.writeString(client.runDirectory.toPath().resolve(FILE_NAME), GSON.toJson(root)); } catch (IOException ignored) {}
     }
 
@@ -91,10 +105,21 @@ public final class BlackjackConfig {
         catch (NumberFormatException ignored) { return null; }
     }
 
+    private static void addSelectedFrames(JsonObject root, String key, Role role) {
+        Set<String> positions = AUTO_SELECTED_FRAMES.get(role);
+        if (positions != null) { com.google.gson.JsonArray array = new com.google.gson.JsonArray(); positions.forEach(array::add); root.add(key, array); }
+    }
+
+    public static void setAutoSelectedFrames(Role role, Set<String> positions) { AUTO_SELECTED_FRAMES.put(role, new LinkedHashSet<>(positions)); }
+    public static boolean isAutoSelectedFrame(Role role, BlockPos pos) {
+        Set<String> positions = AUTO_SELECTED_FRAMES.get(role);
+        return positions == null || positions.contains(pos.getX() + "|" + pos.getY() + "|" + pos.getZ());
+    }
+
     public static void setFirstSelection(Role role, String key) { if (role == Role.HOST) hostFirstFrame = key; else viewerFirstFrame = key; }
     public static void setSecondSelection(Role role, String key) { if (role == Role.HOST) hostSecondFrame = key; else viewerSecondFrame = key; }
     public static FrameSelection getSelection(Role role) { return role == Role.HOST ? new FrameSelection(hostFirstFrame, hostSecondFrame) : new FrameSelection(viewerFirstFrame, viewerSecondFrame); }
-    public static void clearSelection(Role role) { if (role == Role.HOST) { hostFirstFrame = null; hostSecondFrame = null; } else { viewerFirstFrame = null; viewerSecondFrame = null; } }
+    public static void clearSelection(Role role) { AUTO_SELECTED_FRAMES.remove(role); if (role == Role.HOST) { hostFirstFrame = null; hostSecondFrame = null; } else { viewerFirstFrame = null; viewerSecondFrame = null; } }
 
     public static int getScannedMapValue(String mapId) { Integer value = SHARED_SCANNED_MAPS.get(mapId); return value == null ? -1 : value; }
     public static void replaceSharedScan(Map<String, Integer> values) { SHARED_SCANNED_MAPS.clear(); SHARED_SCANNED_MAPS.putAll(values); }
