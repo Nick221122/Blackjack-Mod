@@ -14,6 +14,7 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.MapIdComponent;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.DispenserBlock;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
@@ -66,11 +67,13 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             client.player.sendMessage(Text.literal("This is not a Dispenser or Dropper."), true);
             return;
         }
-        if (client.world == null || !(client.crosshairTarget instanceof BlockHitResult blockHit)) {
+        if (client.world == null) return;
+        BlockPos dispenserPos = findOpenDispenserPos(client);
+        if (dispenserPos == null) {
             client.player.sendMessage(Text.literal("Look at the Dispenser or Dropper while scanning."), true);
             return;
         }
-        boolean framesSelected = autoSelectFrameAreas(client, blockHit.getBlockPos());
+        boolean framesSelected = autoSelectFrameAreas(client, dispenserPos);
         Map<String, Integer> scanned = new java.util.LinkedHashMap<>();
         int occupied = 0;
         for (int slot = 0; slot < 9; slot++) {
@@ -87,6 +90,24 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
                 ? " Automatically selected Viewer frames on the left and Host frames on the right."
                 : " Could not find item frames on both sides.";
         client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s). Shared by Host and Viewer." + frameStatus), true);
+    }
+
+    private static BlockPos findOpenDispenserPos(MinecraftClient client) {
+        if (client.world == null || client.player == null) return null;
+        if (client.crosshairTarget instanceof BlockHitResult hit && isDispenserOrDropper(client, hit.getBlockPos())) {
+            return hit.getBlockPos();
+        }
+        var raycast = client.player.raycast(5.0D, 1.0F, false);
+        if (raycast instanceof BlockHitResult hit && isDispenserOrDropper(client, hit.getBlockPos())) {
+            return hit.getBlockPos();
+        }
+        return null;
+    }
+
+    private static boolean isDispenserOrDropper(MinecraftClient client, BlockPos pos) {
+        if (client.world == null) return false;
+        var state = client.world.getBlockState(pos);
+        return state.isOf(Blocks.DISPENSER) || state.isOf(Blocks.DROPPER);
     }
 
     static String mapIdSignature(ItemStack stack) {
@@ -111,9 +132,9 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         Direction facing = state.get(DispenserBlock.FACING);
         if (!facing.getAxis().isHorizontal()) return false;
 
-        Box searchBox = new Box(dispenserPos).expand(6.0D);
+        Box searchBox = new Box(dispenserPos).expand(9.0D);
         List<ItemFrameEntity> nearby = client.world.getEntitiesByClass(ItemFrameEntity.class, searchBox,
-                frame -> !frame.isRemoved() && frame.getHorizontalFacing() == facing);
+                frame -> !frame.isRemoved() && frame.getHorizontalFacing().getAxis() == facing.getAxis());
         java.util.Comparator<ItemFrameEntity> nearestFirst = java.util.Comparator.comparingDouble(
                 frame -> frame.squaredDistanceTo(dispenserPos.getX() + 0.5D, dispenserPos.getY() + 0.5D, dispenserPos.getZ() + 0.5D));
         java.util.List<ItemFrameEntity> viewerFrames = new java.util.ArrayList<>();
