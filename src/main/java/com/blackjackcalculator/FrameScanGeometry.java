@@ -18,13 +18,13 @@ final class FrameScanGeometry {
     static boolean isViewerSide(Direction facing, BlockPos dispenserPos, BlockPos framePos) {
         int side = sideOfDispenser(facing, dispenserPos, framePos);
         if (side == 0) return false;
-        return facing == Direction.NORTH || facing == Direction.EAST ? side < 0 : side > 0;
+        return facing == Direction.NORTH || facing == Direction.EAST ? side > 0 : side < 0;
     }
 
     static boolean isHostSide(Direction facing, BlockPos dispenserPos, BlockPos framePos) {
         int side = sideOfDispenser(facing, dispenserPos, framePos);
         if (side == 0) return false;
-        return facing == Direction.NORTH || facing == Direction.EAST ? side > 0 : side < 0;
+        return facing == Direction.NORTH || facing == Direction.EAST ? side < 0 : side > 0;
     }
 
     private static int sideOfDispenser(Direction facing, BlockPos dispenserPos, BlockPos framePos) {
