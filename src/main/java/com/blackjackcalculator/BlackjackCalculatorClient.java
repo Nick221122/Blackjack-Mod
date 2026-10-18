@@ -3,15 +3,9 @@ package com.blackjackcalculator;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.Generic3x3ContainerScreen;
-import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.block.DispenserBlock;
 import net.minecraft.client.util.InputUtil;
@@ -22,14 +16,12 @@ import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public final class BlackjackCalculatorClient implements ClientModInitializer {
@@ -44,6 +36,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static KeyBinding assignViewerKey;
     private static KeyBinding editHudKey;
     private static KeyBinding mapSimulationKey;
+    private static KeyBinding autoScanFramesKey;
     private static int hostTotal, viewerTotal;
     private static boolean hostHasCards, viewerHasCards;
 
@@ -56,48 +49,20 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         assignViewerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_viewer", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_U, category));
         editHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.edit_hud", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_P, category));
         mapSimulationKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.toggle_map_simulation", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, category));
+        autoScanFramesKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.auto_scan_frames", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, category));
         ClientTickEvents.END_CLIENT_TICK.register(BlackjackCalculatorClient::onClientTick);
         HudElementRegistry.addLast(HUD_ID, BlackjackCalculatorClient::renderHud);
-        ScreenEvents.AFTER_INIT.register(BlackjackCalculatorClient::onScreenInit);
     }
 
-    private static void onScreenInit(MinecraftClient client, Screen screen, int scaledWidth, int scaledHeight) {
-        if (!(screen instanceof Generic3x3ContainerScreen) && !(screen instanceof GenericContainerScreen)) return;
-        if (!isDispenserOrDropperScreen(screen)) return;
-        int buttonX = Math.max(4, (scaledWidth - 176) / 2 - 62);
-        int buttonY = Math.max(4, (scaledHeight - 114) / 2 + 20);
-        Screens.getButtons(screen).add(ButtonWidget.builder(Text.translatable("button.blackjackcalculator.scan"), button -> scanOpenContainer(client, screen)).dimensions(buttonX, buttonY, 56, 20).build());
-    }
-
-    private static boolean isDispenserOrDropperScreen(Screen screen) {
-        return screen instanceof Generic3x3ContainerScreen || screen.getTitle().getString().equalsIgnoreCase("Dispenser") || screen.getTitle().getString().equalsIgnoreCase("Dropper");
-    }
-
-    private static void scanOpenContainer(MinecraftClient client, Screen screen) {
-        if (client.player == null) return;
-        if (!(screen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?> handled)) return;
-        if (!(handled.getScreenHandler() instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler handler)) { client.player.sendMessage(Text.literal("This is not a Dispenser or Dropper."), true); return; }
-        if (!(client.crosshairTarget instanceof BlockHitResult blockHit)) { client.player.sendMessage(Text.literal("Look at the Dispenser or Dropper while scanning."), true); return; }
-        if (!autoSelectFrameAreas(client, blockHit.getBlockPos())) {
-            client.player.sendMessage(Text.literal("No item frames found around the dispenser. Place frames on both sides and scan again."), true);
+    private static void scanFramesFromTarget(MinecraftClient client) {
+        if (client.player == null || client.world == null) return;
+        if (!(client.crosshairTarget instanceof net.minecraft.util.hit.BlockHitResult blockHit)) {
+            client.player.sendMessage(Text.literal("Look at the dispenser while scanning frames."), true);
             return;
         }
-        Map<String, Integer> scanned = new java.util.LinkedHashMap<>();
-        java.util.List<ItemStack> scannedStacks = new java.util.ArrayList<>();
-        int occupied = 0;
-        for (int slot = 0; slot < 9; slot++) {
-            ItemStack stack = handler.getSlot(slot).getStack();
-            if (stack.isEmpty()) continue;
-            String mapId = mapIdSignature(stack);
-            if (mapId == null) continue;
-            scanned.put(mapId, SCAN_VALUES[slot]);
-            scannedStacks.add(stack);
-            occupied++;
+        if (!autoSelectFrameAreas(client, blockHit.getBlockPos())) {
+            client.player.sendMessage(Text.literal("No item frames found on both sides of the dispenser."), true);
         }
-        BlackjackConfig.replaceSharedScan(scanned); BlackjackConfig.save(client);
-        MapSimulationStore.clear();
-        int simulated = MapSimulationStore.scanContainer(client, scannedStacks);
-        client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s); captured " + simulated + " visual representation(s). Shared by Host and Viewer."), true);
     }
 
     /**
@@ -170,6 +135,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
         while (mapSimulationKey.wasPressed()) toggleMapSimulation(client);
+        while (autoScanFramesKey.wasPressed()) scanFramesFromTarget(client);
         updateTotals(client);
     }
 
