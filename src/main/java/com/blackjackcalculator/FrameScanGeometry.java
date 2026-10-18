@@ -5,10 +5,10 @@ import net.minecraft.util.math.Direction;
 
 /** Coordinate rules for the fixed two-column frame layout around a dispenser. */
 final class FrameScanGeometry {
-    private static final int MIN_SIDE_OFFSET = 2;
-    private static final int MAX_SIDE_OFFSET = 3;
-    private static final int MIN_VERTICAL_OFFSET = 1;
-    private static final int MAX_VERTICAL_OFFSET = 9;
+    private static final int MIN_SIDE_OFFSET = 1;
+    private static final int MAX_SIDE_OFFSET = 2;
+    private static final int MIN_VERTICAL_OFFSET = 0;
+    private static final int MAX_VERTICAL_OFFSET = 3;
 
     private FrameScanGeometry() {}
 
@@ -26,8 +26,7 @@ final class FrameScanGeometry {
         int verticalOffset = framePos.getY() - dispenserPos.getY();
         return sideOffset >= MIN_SIDE_OFFSET && sideOffset <= MAX_SIDE_OFFSET
                 && verticalOffset >= MIN_VERTICAL_OFFSET
-                && verticalOffset <= MAX_VERTICAL_OFFSET
-                && verticalOffset % 2 == 1;
+                && verticalOffset <= MAX_VERTICAL_OFFSET;
     }
 
     static boolean isViewerSide(Direction facing, BlockPos dispenserPos, BlockPos framePos) {
