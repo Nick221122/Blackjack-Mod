@@ -23,6 +23,15 @@ class FrameScanGeometryTest {
     }
 
     @Test
+    void supportsSmallerLayoutsWithoutExpandingThePermittedArea() {
+        assertTrue(FrameScanGeometry.isInExpectedLayout(Direction.NORTH, DISPENSER, new BlockPos(1, 64, 0)));
+        assertTrue(FrameScanGeometry.isInExpectedLayout(Direction.NORTH, DISPENSER, new BlockPos(1, 65, 0)));
+        assertFalse(FrameScanGeometry.isInExpectedLayout(Direction.NORTH, DISPENSER, new BlockPos(3, 65, 0)));
+        assertFalse(FrameScanGeometry.isInExpectedLayout(Direction.NORTH, DISPENSER, new BlockPos(2, 68, 0)));
+        assertFalse(FrameScanGeometry.isInExpectedLayout(Direction.NORTH, DISPENSER, new BlockPos(2, 65, 2)));
+    }
+
+    @Test
     void northFacingDispenserKeepsViewerRightAndHostLeft() {
         assertTrue(FrameScanGeometry.isViewerSide(Direction.NORTH, DISPENSER, new BlockPos(1, 64, 0)));
         assertTrue(FrameScanGeometry.isHostSide(Direction.NORTH, DISPENSER, new BlockPos(-1, 64, 0)));
