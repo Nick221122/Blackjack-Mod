@@ -33,6 +33,8 @@ class FrameScanGeometryTest {
 
     private static void assertViewerAndHost(Direction facing, BlockPos viewer, BlockPos host) {
         assertTrue(FrameScanGeometry.isViewerSide(facing, DISPENSER, viewer), facing + " viewer side");
+        assertFalse(FrameScanGeometry.isHostSide(facing, DISPENSER, viewer), facing + " viewer must not be host");
+        assertTrue(FrameScanGeometry.isHostSide(facing, DISPENSER, host), facing + " host side");
         assertFalse(FrameScanGeometry.isViewerSide(facing, DISPENSER, host), facing + " host must not be viewer");
     }
 }
