@@ -83,15 +83,16 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             if (stack.isEmpty()) continue;
             String mapId = mapIdSignature(stack);
             if (mapId == null) continue;
-            scanned.put(mapId, SCAN_VALUES[slot]);
+            scanned.putIfAbsent(mapId, SCAN_VALUES[slot]);
             occupied++;
         }
         BlackjackConfig.replaceSharedScan(scanned);
         BlackjackConfig.save(client);
-        String frameStatus = framesSelected
-                ? " Automatically selected Viewer frames on the left and Host frames on the right."
-                : " Could not find item frames on both sides.";
-        client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s). Shared by Host and Viewer." + frameStatus), true);
+        if (framesSelected) {
+            client.player.sendMessage(Text.literal("Scanned " + scanned.size() + " maps. Viewer: left (" + selectedFrameCount(BlackjackConfig.Role.VIEWER) + ") | Host: right (" + selectedFrameCount(BlackjackConfig.Role.HOST) + ")."), true);
+        } else {
+            client.player.sendMessage(Text.literal("Scanned " + scanned.size() + " maps, but frame selection failed."), true);
+        }
     }
 
     private static BlockPos findOpenDispenserPos(MinecraftClient client) {
@@ -157,10 +158,23 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
         setSelectionBounds(BlackjackConfig.Role.VIEWER, viewerFrames);
         setSelectionBounds(BlackjackConfig.Role.HOST, hostFrames);
+        BlackjackConfig.setAutoSelectedFrames(BlackjackConfig.Role.VIEWER, viewerFrames.stream().map(BlackjackConfig::selectionKey).collect(java.util.stream.Collectors.toSet()));
+        BlackjackConfig.setAutoSelectedFrames(BlackjackConfig.Role.HOST, hostFrames.stream().map(BlackjackConfig::selectionKey).collect(java.util.stream.Collectors.toSet()));
         BlackjackConfig.save(client);
-        client.player.sendMessage(Text.literal("Auto-selected " + viewerFrames.size() + " Viewer frame(s) on the left and "
-                + hostFrames.size() + " Host frame(s) on the right."), true);
         return true;
+    }
+
+    private static int selectedFrameCount(BlackjackConfig.Role role) {
+        BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
+        BlockPos first = BlackjackConfig.parseSelectionPos(selection.firstKey());
+        BlockPos second = BlackjackConfig.parseSelectionPos(selection.secondKey());
+        if (first == null || second == null) return 0;
+        int count = 0;
+        for (int x = Math.min(first.getX(), second.getX()); x <= Math.max(first.getX(), second.getX()); x++)
+            for (int y = Math.min(first.getY(), second.getY()); y <= Math.max(first.getY(), second.getY()); y++)
+                for (int z = Math.min(first.getZ(), second.getZ()); z <= Math.max(first.getZ(), second.getZ()); z++)
+                    if (BlackjackConfig.isAutoSelectedFrame(role, new BlockPos(x, y, z))) count++;
+        return count;
     }
 
     private static void setSelectionBounds(BlackjackConfig.Role role, List<ItemFrameEntity> frames) {
@@ -240,7 +254,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         BlockPos second = resolveSelectionPos(client, selection.secondKey());
         if (first == null || second == null) return false;
         BlockPos p = frame.getBlockPos();
-        return between(p.getX(), first.getX(), second.getX()) && between(p.getY(), first.getY(), second.getY()) && between(p.getZ(), first.getZ(), second.getZ());
+        return BlackjackConfig.isAutoSelectedFrame(role, p)
+                && between(p.getX(), first.getX(), second.getX()) && between(p.getY(), first.getY(), second.getY()) && between(p.getZ(), first.getZ(), second.getZ());
     }
 
     private static BlockPos resolveSelectionPos(MinecraftClient client, String key) {
