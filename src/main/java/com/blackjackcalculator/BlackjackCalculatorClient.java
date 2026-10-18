@@ -265,7 +265,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         float scale = host ? BlackjackConfig.getHostScale() : BlackjackConfig.getViewerScale();
         int width = Math.round(client.textRenderer.getWidth(text) * scale);
         int x = host ? BlackjackConfig.getHostX() : BlackjackConfig.getViewerX(), y = host ? BlackjackConfig.getHostY() : BlackjackConfig.getViewerY();
-        if (!host && x < 0) x = client.getWindow().getScaledWidth() - width - 8;
+        if (x < 0) x = client.getWindow().getScaledWidth() - width - 8;
         context.getMatrices().pushMatrix(); context.getMatrices().translate(x, y); context.getMatrices().scale(scale, scale);
         context.drawText(client.textRenderer, text, 0, 0, color, true); context.getMatrices().popMatrix();
     }
