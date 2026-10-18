@@ -14,7 +14,6 @@ import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.block.DispenserBlock;
-import net.minecraft.block.DirectionalBlock;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.component.DataComponentTypes;
@@ -108,8 +107,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static boolean autoSelectFrameAreas(MinecraftClient client, BlockPos dispenserPos) {
         if (client.world == null) return false;
         var state = client.world.getBlockState(dispenserPos);
-        if (!state.contains(DirectionalBlock.FACING)) return false;
-        Direction facing = state.get(DirectionalBlock.FACING);
+        if (!state.contains(DispenserBlock.FACING)) return false;
+        Direction facing = state.get(DispenserBlock.FACING);
         if (!facing.getAxis().isHorizontal()) return false;
 
         Box searchBox = new Box(dispenserPos).expand(6.0D);
