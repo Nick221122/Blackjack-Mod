@@ -14,11 +14,14 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.MapIdComponent;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.DispenserBlock;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
@@ -36,8 +39,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static final double SELECTION_HIT_EXPANSION = 0.5D;
     private static final int[] SCAN_VALUES = {11, 3, 4, 5, 6, 7, 8, 9, 10};
 
-    private static KeyBinding assignHostKey;
-    private static KeyBinding assignViewerKey;
     private static KeyBinding editHudKey;
     private static KeyBinding scanContainerKey;
     private static int hostTotal, viewerTotal;
@@ -48,10 +49,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         MinecraftClient client = MinecraftClient.getInstance();
         BlackjackConfig.load(client);
         KeyBinding.Category category = KeyBinding.Category.create(Identifier.of(MOD_ID, "controls"));
-        assignHostKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_host", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_J, category));
-        assignViewerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_viewer", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_U, category));
         editHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.edit_hud", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_P, category));
-        scanContainerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.scan_container", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, category));
+        scanContainerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.scan_container", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_L, category));
         ClientTickEvents.END_CLIENT_TICK.register(BlackjackCalculatorClient::onClientTick);
         ScreenEvents.BEFORE_INIT.register((client1, screen, scaledWidth, scaledHeight) -> {
             ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, context) -> {
@@ -70,10 +69,13 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             client.player.sendMessage(Text.literal("This is not a Dispenser or Dropper."), true);
             return;
         }
-        if (!(client.crosshairTarget instanceof BlockHitResult)) {
+        if (client.world == null) return;
+        BlockPos dispenserPos = findOpenDispenserPos(client);
+        if (dispenserPos == null) {
             client.player.sendMessage(Text.literal("Look at the Dispenser or Dropper while scanning."), true);
             return;
         }
+        boolean framesSelected = autoSelectFrameAreas(client, dispenserPos);
         Map<String, Integer> scanned = new java.util.LinkedHashMap<>();
         int occupied = 0;
         for (int slot = 0; slot < 9; slot++) {
@@ -81,12 +83,34 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             if (stack.isEmpty()) continue;
             String mapId = mapIdSignature(stack);
             if (mapId == null) continue;
-            scanned.put(mapId, SCAN_VALUES[slot]);
+            scanned.putIfAbsent(mapId, SCAN_VALUES[slot]);
             occupied++;
         }
         BlackjackConfig.replaceSharedScan(scanned);
         BlackjackConfig.save(client);
-        client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s). Shared by Host and Viewer."), true);
+        if (framesSelected) {
+            client.player.sendMessage(Text.literal("Scanned " + scanned.size() + " maps. Viewer: left (" + selectedFrameCount(BlackjackConfig.Role.VIEWER) + ") | Host: right (" + selectedFrameCount(BlackjackConfig.Role.HOST) + ")."), true);
+        } else {
+            client.player.sendMessage(Text.literal("Scanned " + scanned.size() + " maps, but frame selection failed."), true);
+        }
+    }
+
+    private static BlockPos findOpenDispenserPos(MinecraftClient client) {
+        if (client.world == null || client.player == null) return null;
+        if (client.crosshairTarget instanceof BlockHitResult hit && isDispenserOrDropper(client, hit.getBlockPos())) {
+            return hit.getBlockPos();
+        }
+        var raycast = client.player.raycast(5.0D, 1.0F, false);
+        if (raycast instanceof BlockHitResult hit && isDispenserOrDropper(client, hit.getBlockPos())) {
+            return hit.getBlockPos();
+        }
+        return null;
+    }
+
+    private static boolean isDispenserOrDropper(MinecraftClient client, BlockPos pos) {
+        if (client.world == null) return false;
+        var state = client.world.getBlockState(pos);
+        return state.isOf(Blocks.DISPENSER) || state.isOf(Blocks.DROPPER);
     }
 
     static String mapIdSignature(ItemStack stack) {
@@ -96,35 +120,82 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     }
 
     private static void onClientTick(MinecraftClient client) {
-        while (assignHostKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.HOST);
-        while (assignViewerKey.wasPressed()) selectCorner(client, BlackjackConfig.Role.VIEWER);
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
         updateTotals(client);
     }
 
-    private static void selectCorner(MinecraftClient client, BlackjackConfig.Role role) {
-        if (client.player == null || client.world == null) return;
-        ItemFrameEntity frame = findTargetFrame(client);
-        if (frame == null) {
-            client.player.sendMessage(Text.literal("Look directly at an item frame first."), true);
-            return;
+    /**
+     * Automatically assigns nearby item frames on each side of the scanned dispenser.
+     * The dispenser's facing determines the wall plane and which side is Viewer or Host.
+     */
+    private static boolean autoSelectFrameAreas(MinecraftClient client, BlockPos dispenserPos) {
+        if (client.world == null || client.player == null) return false;
+        var state = client.world.getBlockState(dispenserPos);
+        if (!state.contains(DispenserBlock.FACING)) return false;
+        Direction facing = state.get(DispenserBlock.FACING);
+        if (!facing.getAxis().isHorizontal()) return false;
+
+        Box searchBox = new Box(dispenserPos).expand(9.0D);
+        List<ItemFrameEntity> nearby = client.world.getEntitiesByClass(ItemFrameEntity.class, searchBox,
+                frame -> !frame.isRemoved() && frame.getHorizontalFacing().getAxis() == facing.getAxis());
+        java.util.Comparator<ItemFrameEntity> nearestFirst = java.util.Comparator.comparingDouble(
+                frame -> frame.squaredDistanceTo(dispenserPos.getX() + 0.5D, dispenserPos.getY() + 0.5D, dispenserPos.getZ() + 0.5D));
+        java.util.List<ItemFrameEntity> viewerFrames = new java.util.ArrayList<>();
+        java.util.List<ItemFrameEntity> hostFrames = new java.util.ArrayList<>();
+
+        for (ItemFrameEntity frame : nearby) {
+            BlockPos p = frame.getBlockPos();
+            if (!FrameScanGeometry.isInDispenserWallPlane(facing, dispenserPos, p)) continue;
+            if (FrameScanGeometry.isViewerSide(facing, dispenserPos, p)) viewerFrames.add(frame);
+            else if (FrameScanGeometry.isHostSide(facing, dispenserPos, p)) hostFrames.add(frame);
         }
-        BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
-        String current = BlackjackConfig.selectionKey(frame);
-        if (selection.firstKey() == null || selection.secondKey() != null) {
-            BlackjackConfig.setFirstSelection(role, current);
-            BlackjackConfig.setSecondSelection(role, null);
-            BlackjackConfig.save(client);
-            client.player.sendMessage(Text.literal(roleName(role) + ": first corner selected."), true);
-        } else {
-            BlackjackConfig.setSecondSelection(role, current);
-            BlackjackConfig.save(client);
-            client.player.sendMessage(Text.literal(roleName(role) + ": area saved until you select new corners."), true);
-        }
+
+        viewerFrames.sort(nearestFirst);
+        hostFrames.sort(nearestFirst);
+        if (viewerFrames.isEmpty() || hostFrames.isEmpty()) return false;
+        if (viewerFrames.size() > 9) viewerFrames = new java.util.ArrayList<>(viewerFrames.subList(0, 9));
+        if (hostFrames.size() > 9) hostFrames = new java.util.ArrayList<>(hostFrames.subList(0, 9));
+
+        setSelectionBounds(BlackjackConfig.Role.VIEWER, viewerFrames);
+        setSelectionBounds(BlackjackConfig.Role.HOST, hostFrames);
+        BlackjackConfig.setAutoSelectedFrames(BlackjackConfig.Role.VIEWER, viewerFrames.stream().map(BlackjackConfig::selectionKey).collect(java.util.stream.Collectors.toSet()));
+        BlackjackConfig.setAutoSelectedFrames(BlackjackConfig.Role.HOST, hostFrames.stream().map(BlackjackConfig::selectionKey).collect(java.util.stream.Collectors.toSet()));
+        BlackjackConfig.save(client);
+        return true;
     }
 
-    /** Long-range selection raycast with a forgiving hitbox so distant frames are easier to select. */
+    private static int selectedFrameCount(BlackjackConfig.Role role) {
+        BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
+        BlockPos first = BlackjackConfig.parseSelectionPos(selection.firstKey());
+        BlockPos second = BlackjackConfig.parseSelectionPos(selection.secondKey());
+        if (first == null || second == null) return 0;
+        int count = 0;
+        for (int x = Math.min(first.getX(), second.getX()); x <= Math.max(first.getX(), second.getX()); x++)
+            for (int y = Math.min(first.getY(), second.getY()); y <= Math.max(first.getY(), second.getY()); y++)
+                for (int z = Math.min(first.getZ(), second.getZ()); z <= Math.max(first.getZ(), second.getZ()); z++)
+                    if (BlackjackConfig.isAutoSelectedFrame(role, new BlockPos(x, y, z))) count++;
+        return count;
+    }
+
+    private static void setSelectionBounds(BlackjackConfig.Role role, List<ItemFrameEntity> frames) {
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        for (ItemFrameEntity frame : frames) {
+            BlockPos p = frame.getBlockPos();
+            minX = Math.min(minX, p.getX());
+            minY = Math.min(minY, p.getY());
+            minZ = Math.min(minZ, p.getZ());
+            maxX = Math.max(maxX, p.getX());
+            maxY = Math.max(maxY, p.getY());
+            maxZ = Math.max(maxZ, p.getZ());
+        }
+        BlackjackConfig.setFirstSelection(role, minX + "|" + minY + "|" + minZ);
+        BlackjackConfig.setSecondSelection(role, maxX + "|" + maxY + "|" + maxZ);
+    }
+
+    /** Long-range frame targeting used by the selection-area preview renderer. */
     static ItemFrameEntity findTargetFrame(MinecraftClient client) {
+        if (client == null || client.player == null || client.world == null) return null;
         var start = client.player.getCameraPosVec(1.0F);
         var end = start.add(client.player.getRotationVec(1.0F).multiply(SELECTION_RAY_DISTANCE));
         Box searchBox = new Box(start, end).expand(1.0D);
@@ -140,10 +211,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             }
         }
         return best;
-    }
-
-    private static String roleName(BlackjackConfig.Role role) {
-        return role == BlackjackConfig.Role.HOST ? "Host" : "Viewer";
     }
 
     private static void updateTotals(MinecraftClient client) {
@@ -187,7 +254,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         BlockPos second = resolveSelectionPos(client, selection.secondKey());
         if (first == null || second == null) return false;
         BlockPos p = frame.getBlockPos();
-        return between(p.getX(), first.getX(), second.getX()) && between(p.getY(), first.getY(), second.getY()) && between(p.getZ(), first.getZ(), second.getZ());
+        return BlackjackConfig.isAutoSelectedFrame(role, p)
+                && between(p.getX(), first.getX(), second.getX()) && between(p.getY(), first.getY(), second.getY()) && between(p.getZ(), first.getZ(), second.getZ());
     }
 
     private static BlockPos resolveSelectionPos(MinecraftClient client, String key) {
