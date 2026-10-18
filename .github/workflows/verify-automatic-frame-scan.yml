@@ -1,5 +1,6 @@
 name: Verify Automatic Frame Scan
 
+# Re-run the build on every update to the feature branch.
 on:
   push:
     branches:
