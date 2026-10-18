@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.util.math.BlockPos;
 
 import java.io.IOException;
@@ -16,7 +15,6 @@ import java.util.Map;
 
 public final class BlackjackConfig {
     public enum Role { HOST, VIEWER }
-    public record FrameSelection(String firstKey, String secondKey) {}
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILE_NAME = "blackjackcalculator.json";
     private static int hostX = -1, hostY = 8, viewerX = 8, viewerY = 8;
@@ -82,12 +80,6 @@ public final class BlackjackConfig {
         try { Files.writeString(client.runDirectory.toPath().resolve(FILE_NAME), GSON.toJson(root)); } catch (IOException ignored) {}
     }
 
-    /** Stable selection key based on block position instead of an entity UUID. */
-    public static String selectionKey(ItemFrameEntity frame) {
-        BlockPos p = frame.getBlockPos();
-        return p.getX() + "|" + p.getY() + "|" + p.getZ();
-    }
-
     public static BlockPos parseSelectionPos(String key) {
         if (key == null) return null;
         String[] parts = key.split("\\|");
@@ -98,7 +90,6 @@ public final class BlackjackConfig {
 
     public static void setFirstSelection(Role role, String key) { if (role == Role.HOST) hostFirstFrame = key; else viewerFirstFrame = key; }
     public static void setSecondSelection(Role role, String key) { if (role == Role.HOST) hostSecondFrame = key; else viewerSecondFrame = key; }
-    public static FrameSelection getSelection(Role role) { return role == Role.HOST ? new FrameSelection(hostFirstFrame, hostSecondFrame) : new FrameSelection(viewerFirstFrame, viewerSecondFrame); }
     public static int getScannedMapValue(String mapId) { Integer value = SHARED_SCANNED_MAPS.get(mapId); return value == null ? -1 : value; }
     public static void replaceSharedScan(Map<String, Integer> values) { SHARED_SCANNED_MAPS.clear(); SHARED_SCANNED_MAPS.putAll(values); }
     public static String getHostName() { return hostName; }
