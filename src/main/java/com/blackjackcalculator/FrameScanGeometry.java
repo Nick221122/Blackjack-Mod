@@ -16,13 +16,23 @@ final class FrameScanGeometry {
     }
 
     static boolean isViewerSide(Direction facing, BlockPos dispenserPos, BlockPos framePos) {
-        if (!isInDispenserWallPlane(facing, dispenserPos, framePos)) return false;
-        boolean splitAlongX = facing.getAxis() == Direction.Axis.Z;
-        int side = splitAlongX
-                ? Integer.compare(framePos.getX(), dispenserPos.getX())
-                : Integer.compare(framePos.getZ(), dispenserPos.getZ());
+        int side = sideOfDispenser(facing, dispenserPos, framePos);
         if (side == 0) return false;
         // Minecraft's left-hand side when looking in the facing direction.
         return facing == Direction.NORTH || facing == Direction.EAST ? side < 0 : side > 0;
+    }
+
+    static boolean isHostSide(Direction facing, BlockPos dispenserPos, BlockPos framePos) {
+        int side = sideOfDispenser(facing, dispenserPos, framePos);
+        if (side == 0) return false;
+        return facing == Direction.NORTH || facing == Direction.EAST ? side > 0 : side < 0;
+    }
+
+    private static int sideOfDispenser(Direction facing, BlockPos dispenserPos, BlockPos framePos) {
+        if (!isInDispenserWallPlane(facing, dispenserPos, framePos)) return 0;
+        boolean splitAlongX = facing.getAxis() == Direction.Axis.Z;
+        return splitAlongX
+                ? Integer.compare(framePos.getX(), dispenserPos.getX())
+                : Integer.compare(framePos.getZ(), dispenserPos.getZ());
     }
 }
