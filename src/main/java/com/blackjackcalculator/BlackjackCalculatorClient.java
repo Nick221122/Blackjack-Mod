@@ -246,14 +246,14 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     private static boolean isFrameInsideSelection(MinecraftClient client, ItemFrameEntity frame, BlackjackConfig.Role role) {
         BlackjackConfig.FrameSelection selection = BlackjackConfig.getSelection(role);
-        BlockPos first = resolveSelectionPos(client, selection.firstKey());
-        BlockPos second = resolveSelectionPos(client, selection.secondKey());
+        BlockPos first = resolveSelectionPos(selection.firstKey());
+        BlockPos second = resolveSelectionPos(selection.secondKey());
         if (first == null || second == null) return false;
         BlockPos p = frame.getBlockPos();
         return between(p.getX(), first.getX(), second.getX()) && between(p.getY(), first.getY(), second.getY()) && between(p.getZ(), first.getZ(), second.getZ());
     }
 
-    private static BlockPos resolveSelectionPos(MinecraftClient client, String key) {
+    private static BlockPos resolveSelectionPos(String key) {
         return BlackjackConfig.parseSelectionPos(key);
     }
 
