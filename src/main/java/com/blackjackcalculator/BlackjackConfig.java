@@ -39,6 +39,11 @@ public final class BlackjackConfig {
             hostY = root.has("hostY") ? root.get("hostY").getAsInt() : hostY;
             viewerX = root.has("viewerX") ? root.get("viewerX").getAsInt() : viewerX;
             viewerY = root.has("viewerY") ? root.get("viewerY").getAsInt() : viewerY;
+            // Migrate saved default positions from the old layout (Host left, Viewer right).
+            if (hostX == 8 && viewerX == -1) {
+                hostX = -1;
+                viewerX = 8;
+            }
             hostScale = root.has("hostScale") ? root.get("hostScale").getAsFloat() : hostScale;
             viewerScale = root.has("viewerScale") ? root.get("viewerScale").getAsFloat() : viewerScale;
             hostName = root.has("hostName") ? root.get("hostName").getAsString() : hostName;
