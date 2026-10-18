@@ -114,7 +114,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         Box searchBox = new Box(dispenserPos).expand(6.0D);
         List<ItemFrameEntity> nearby = client.world.getEntitiesByClass(ItemFrameEntity.class, searchBox,
                 frame -> !frame.isRemoved() && frame.getHorizontalFacing() == facing);
-        boolean splitAlongX = facing.getAxis() == Direction.Axis.Z;
         java.util.Comparator<ItemFrameEntity> nearestFirst = java.util.Comparator.comparingDouble(
                 frame -> frame.squaredDistanceTo(dispenserPos.getX() + 0.5D, dispenserPos.getY() + 0.5D, dispenserPos.getZ() + 0.5D));
         java.util.List<ItemFrameEntity> viewerFrames = new java.util.ArrayList<>();
@@ -122,12 +121,9 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
         for (ItemFrameEntity frame : nearby) {
             BlockPos p = frame.getBlockPos();
-            int normalDistance = splitAlongX ? Math.abs(p.getZ() - dispenserPos.getZ()) : Math.abs(p.getX() - dispenserPos.getX());
-            if (normalDistance > 1) continue;
-            int side = splitAlongX ? Integer.compare(p.getX(), dispenserPos.getX()) : Integer.compare(p.getZ(), dispenserPos.getZ());
-            if (side == 0) continue;
-            boolean isLeftSide = facing == Direction.NORTH || facing == Direction.EAST ? side < 0 : side > 0;
-            (isLeftSide ? viewerFrames : hostFrames).add(frame);
+            if (!FrameScanGeometry.isInDispenserWallPlane(facing, dispenserPos, p)) continue;
+            if (FrameScanGeometry.isViewerSide(facing, dispenserPos, p)) viewerFrames.add(frame);
+            else if (isHostSide(facing, dispenserPos, p)) hostFrames.add(frame);
         }
 
         viewerFrames.sort(nearestFirst);
@@ -141,6 +137,16 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         BlackjackConfig.save(client);
         client.player.sendMessage(Text.literal("Auto-selected " + viewerFrames.size() + " Viewer frame(s) and " + hostFrames.size() + " Host frame(s)."), true);
         return true;
+    }
+
+    private static boolean isHostSide(Direction facing, BlockPos dispenserPos, BlockPos framePos) {
+        if (!FrameScanGeometry.isInDispenserWallPlane(facing, dispenserPos, framePos)) return false;
+        boolean splitAlongX = facing.getAxis() == Direction.Axis.Z;
+        int side = splitAlongX
+                ? Integer.compare(framePos.getX(), dispenserPos.getX())
+                : Integer.compare(framePos.getZ(), dispenserPos.getZ());
+        if (side == 0) return false;
+        return facing == Direction.NORTH || facing == Direction.EAST ? side > 0 : side < 0;
     }
 
     private static void setSelectionBounds(BlackjackConfig.Role role, List<ItemFrameEntity> frames) {
