@@ -35,6 +35,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static final String MOD_ID = "blackjackcalculator";
     private static final Identifier HUD_ID = Identifier.of(MOD_ID, "totals");
     private static final double SCAN_RADIUS = 256.0D;
+    private static final double SELECTION_RAY_DISTANCE = 256.0D;
+    private static final double SELECTION_HIT_EXPANSION = 0.5D;
     private static final int[] SCAN_VALUES = {11, 3, 4, 5, 6, 7, 8, 9, 10};
 
     private static KeyBinding editHudKey;
@@ -175,6 +177,26 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         }
         BlackjackConfig.setFirstSelection(role, minX + "|" + minY + "|" + minZ);
         BlackjackConfig.setSecondSelection(role, maxX + "|" + maxY + "|" + maxZ);
+    }
+
+    /** Long-range frame targeting used by the selection-area preview renderer. */
+    static ItemFrameEntity findTargetFrame(MinecraftClient client) {
+        if (client == null || client.player == null || client.world == null) return null;
+        var start = client.player.getCameraPosVec(1.0F);
+        var end = start.add(client.player.getRotationVec(1.0F).multiply(SELECTION_RAY_DISTANCE));
+        Box searchBox = new Box(start, end).expand(1.0D);
+        ItemFrameEntity best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (ItemFrameEntity frame : client.world.getEntitiesByClass(ItemFrameEntity.class, searchBox, f -> !f.isRemoved())) {
+            var result = frame.getBoundingBox().expand(SELECTION_HIT_EXPANSION).raycast(start, end);
+            if (result.isEmpty()) continue;
+            double distance = result.get().squaredDistanceTo(start);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = frame;
+            }
+        }
+        return best;
     }
 
     private static void updateTotals(MinecraftClient client) {
