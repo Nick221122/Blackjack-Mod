@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.util.math.BlockPos;
 
 import java.io.IOException;
@@ -80,12 +79,6 @@ public final class BlackjackConfig {
         if (viewerSecondFrame != null) root.addProperty("viewerSecondFrame", viewerSecondFrame);
         JsonObject scanned = new JsonObject(); SHARED_SCANNED_MAPS.forEach(scanned::addProperty); root.add("sharedScannedMaps", scanned);
         try { Files.writeString(client.runDirectory.toPath().resolve(FILE_NAME), GSON.toJson(root)); } catch (IOException ignored) {}
-    }
-
-    /** Stable selection key based on block position instead of an entity UUID. */
-    public static String selectionKey(ItemFrameEntity frame) {
-        BlockPos p = frame.getBlockPos();
-        return p.getX() + "|" + p.getY() + "|" + p.getZ();
     }
 
     public static BlockPos parseSelectionPos(String key) {
