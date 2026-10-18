@@ -14,11 +14,13 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.MapIdComponent;
+import net.minecraft.block.DispenserBlock;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
@@ -52,7 +54,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         assignHostKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_host", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_J, category));
         assignViewerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.assign_viewer", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_U, category));
         editHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.edit_hud", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_P, category));
-        scanContainerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.scan_container", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, category));
+        scanContainerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.scan_container", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_L, category));
         ClientTickEvents.END_CLIENT_TICK.register(BlackjackCalculatorClient::onClientTick);
         ScreenEvents.BEFORE_INIT.register((client1, screen, scaledWidth, scaledHeight) -> {
             ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, context) -> {
@@ -71,10 +73,11 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             client.player.sendMessage(Text.literal("This is not a Dispenser or Dropper."), true);
             return;
         }
-        if (!(client.crosshairTarget instanceof BlockHitResult)) {
+        if (client.world == null || !(client.crosshairTarget instanceof BlockHitResult blockHit)) {
             client.player.sendMessage(Text.literal("Look at the Dispenser or Dropper while scanning."), true);
             return;
         }
+        boolean framesSelected = autoSelectFrameAreas(client, blockHit.getBlockPos());
         Map<String, Integer> scanned = new java.util.LinkedHashMap<>();
         List<ItemStack> scannedStacks = new java.util.ArrayList<>();
         int occupied = 0;
@@ -91,7 +94,67 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         MapSimulationStore.clear();
         int simulated = MapSimulationStore.scanContainer(client, scannedStacks);
         BlackjackConfig.save(client);
-        client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s). Shared by Host and Viewer. Captured " + simulated + " visual map(s) locally."), true);
+        String frameStatus = framesSelected
+                ? " Automatically selected Viewer frames on the left and Host frames on the right."
+                : " Could not find item frames on both sides.";
+        client.player.sendMessage(Text.literal("Scanned " + occupied + " map(s). Shared by Host and Viewer. Captured "
+                + simulated + " visual map(s) locally." + frameStatus), true);
+    }
+
+    /**
+     * Automatically assigns up to nine nearby item frames on each side of the scanned dispenser.
+     * The dispenser's facing determines the wall plane and which side is Viewer (left) or Host (right).
+     */
+    private static boolean autoSelectFrameAreas(MinecraftClient client, BlockPos dispenserPos) {
+        if (client.world == null || client.player == null) return false;
+        var state = client.world.getBlockState(dispenserPos);
+        if (!state.contains(DispenserBlock.FACING)) return false;
+        Direction facing = state.get(DispenserBlock.FACING);
+        if (!facing.getAxis().isHorizontal()) return false;
+
+        Box searchBox = new Box(dispenserPos).expand(6.0D);
+        List<ItemFrameEntity> nearby = client.world.getEntitiesByClass(ItemFrameEntity.class, searchBox,
+                frame -> !frame.isRemoved() && frame.getHorizontalFacing() == facing);
+        java.util.Comparator<ItemFrameEntity> nearestFirst = java.util.Comparator.comparingDouble(
+                frame -> frame.squaredDistanceTo(dispenserPos.getX() + 0.5D, dispenserPos.getY() + 0.5D, dispenserPos.getZ() + 0.5D));
+        java.util.List<ItemFrameEntity> viewerFrames = new java.util.ArrayList<>();
+        java.util.List<ItemFrameEntity> hostFrames = new java.util.ArrayList<>();
+
+        for (ItemFrameEntity frame : nearby) {
+            BlockPos p = frame.getBlockPos();
+            if (!FrameScanGeometry.isInDispenserWallPlane(facing, dispenserPos, p)) continue;
+            if (FrameScanGeometry.isViewerSide(facing, dispenserPos, p)) viewerFrames.add(frame);
+            else if (FrameScanGeometry.isHostSide(facing, dispenserPos, p)) hostFrames.add(frame);
+        }
+
+        viewerFrames.sort(nearestFirst);
+        hostFrames.sort(nearestFirst);
+        if (viewerFrames.isEmpty() || hostFrames.isEmpty()) return false;
+        if (viewerFrames.size() > 9) viewerFrames = new java.util.ArrayList<>(viewerFrames.subList(0, 9));
+        if (hostFrames.size() > 9) hostFrames = new java.util.ArrayList<>(hostFrames.subList(0, 9));
+
+        setSelectionBounds(BlackjackConfig.Role.VIEWER, viewerFrames);
+        setSelectionBounds(BlackjackConfig.Role.HOST, hostFrames);
+        BlackjackConfig.save(client);
+        client.player.sendMessage(Text.literal("Auto-selected " + viewerFrames.size() + " Viewer frame(s) on the left and "
+                + hostFrames.size() + " Host frame(s) on the right."), true);
+        return true;
+    }
+
+    private static void setSelectionBounds(BlackjackConfig.Role role, List<ItemFrameEntity> frames) {
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        for (ItemFrameEntity frame : frames) {
+            BlockPos p = frame.getBlockPos();
+            minX = Math.min(minX, p.getX());
+            minY = Math.min(minY, p.getY());
+            minZ = Math.min(minZ, p.getZ());
+            maxX = Math.max(maxX, p.getX());
+            maxY = Math.max(maxY, p.getY());
+            maxZ = Math.max(maxZ, p.getZ());
+        }
+        BlackjackConfig.setFirstSelection(role, minX + "|" + minY + "|" + minZ);
+        BlackjackConfig.setSecondSelection(role, maxX + "|" + maxY + "|" + maxZ);
     }
 
     static String mapIdSignature(ItemStack stack) {
