@@ -55,7 +55,15 @@ public final class HostAlwaysWinsStrategy {
 
         for (int actualId : hostIds) {
             int count = occurrences.get(actualId);
-            List<Integer> options = viewerIds.contains(actualId) ? List.of(actualId) : candidates;
+            List<Integer> options;
+            if (viewerIds.contains(actualId)) {
+                // A map ID shared with the Viewer must never be substituted.
+                options = List.of(actualId);
+            } else {
+                // Prefer a different captured map so Host-exclusive cards visibly use a fake face.
+                options = candidates.stream().filter(id -> id != actualId).toList();
+                if (options.isEmpty()) options = candidates;
+            }
             Map<State, List<Integer>> next = new LinkedHashMap<>();
             for (Map.Entry<State, List<Integer>> entry : states.entrySet()) {
                 for (int displayId : options) {
@@ -77,10 +85,12 @@ public final class HostAlwaysWinsStrategy {
 
         List<Solution> legal = new ArrayList<>();
         List<Solution> fallback = new ArrayList<>();
+        List<Solution> anyNonBust = new ArrayList<>();
         for (Map.Entry<State, List<Integer>> entry : states.entrySet()) {
             int total = BlackjackScore.score(entry.getKey().fixedTotal(), entry.getKey().aces());
             if (total > 21) continue;
             Solution solution = new Solution(total, entry.getValue());
+            anyNonBust.add(solution);
             if (total >= 17) {
                 fallback.add(solution);
                 if (!viewerHasCards || viewerTotal > 21 || total > viewerTotal) {
@@ -88,7 +98,9 @@ public final class HostAlwaysWinsStrategy {
                 }
             }
         }
-        List<Solution> choices = legal.isEmpty() ? fallback : legal;
+        // If the Host has too few cards to reach 17, still show a simulated non-bust hand.
+        List<Solution> choices = !legal.isEmpty() ? legal
+                : !fallback.isEmpty() ? fallback : anyNonBust;
         if (choices.isEmpty()) return unchanged;
 
         // Stable for the same hand, but changes as the hand or Viewer total changes.
