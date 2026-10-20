@@ -24,6 +24,11 @@ public final class BlackjackScore {
         return Integer.toString(Math.min(total, 21));
     }
 
+    /** Keeps the viewer's visible score numeric while Host Always Wins is enabled. */
+    public static String displayViewerWhenHostAlwaysWins(int total, boolean hasCards) {
+        return display(total, hasCards);
+    }
+
     /**
      * Returns a client-side host HUD score based on the number of host cards/maps.
      * randomRoll is supplied by the caller so the selection can be cached per hand.
