@@ -37,6 +37,10 @@ public final class MapSimulationStore {
         enabled = !enabled;
     }
 
+    public static void setEnabled(boolean value) {
+        enabled = value;
+    }
+
     public static void clear() {
         REPRESENTATIONS.clear();
     }
