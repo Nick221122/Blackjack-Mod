@@ -41,6 +41,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static int hostTotal, viewerTotal;
     private static boolean hostHasCards, viewerHasCards;
     private static boolean mapSimulationKeyDown;
+    private static boolean hostAlwaysWinsKeyDown;
+    private static boolean hostAlwaysWins;
 
     @Override
     public void onInitializeClient() {
@@ -160,11 +162,20 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void onClientTick(MinecraftClient client) {
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
         boolean rPressed = GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
-        if (isNewMapSimulationKeyPress(rPressed, mapSimulationKeyDown)
+        if (isNewMapSimulationKeyPress(rPressed, hostAlwaysWinsKeyDown)) {
+            hostAlwaysWins = !hostAlwaysWins;
+            if (client.player != null) {
+                client.player.sendMessage(Text.literal("Host Always Wins: " + (hostAlwaysWins ? "ON" : "OFF")), true);
+            }
+        }
+        hostAlwaysWinsKeyDown = rPressed;
+
+        boolean mPressed = GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_M) == GLFW.GLFW_PRESS;
+        if (isNewMapSimulationKeyPress(mPressed, mapSimulationKeyDown)
                 && !isMapSimulationToggleBlocked(client)) {
             toggleMapSimulation(client);
         }
-        mapSimulationKeyDown = rPressed;
+        mapSimulationKeyDown = mPressed;
         updateTotals(client);
     }
 
@@ -274,8 +285,13 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null || client.options.hudHidden) return;
-        drawTotal(context, client, BlackjackConfig.getHostName(), hostDisplay(), true);
-        drawTotal(context, client, BlackjackConfig.getViewerName(), BlackjackScore.display(viewerTotal, viewerHasCards), false);
+        drawTotal(context, client, BlackjackConfig.getHostName(), hostAlwaysWins ? "21" : hostDisplay(), true);
+        drawTotal(context, client, BlackjackConfig.getViewerName(), hostAlwaysWins ? "LOSE" : BlackjackScore.display(viewerTotal, viewerHasCards), false);
+        String status = "HOST ALWAYS WINS: " + (hostAlwaysWins ? "ON" : "OFF");
+        int statusColor = hostAlwaysWins ? 0xFF55FF55 : 0xFFFF5555;
+        context.drawText(client.textRenderer, status,
+                client.getWindow().getScaledWidth() - client.textRenderer.getWidth(status) - 8,
+                8, statusColor, true);
     }
 
     private static void drawTotal(DrawContext context, MinecraftClient client, String name, String score, boolean host) {
@@ -307,4 +323,5 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     public static int getViewerTotal() { return viewerTotal; }
     public static boolean hasHostCards() { return hostHasCards; }
     public static boolean hasViewerCards() { return viewerHasCards; }
+    public static boolean isHostAlwaysWinsEnabled() { return hostAlwaysWins; }
 }
