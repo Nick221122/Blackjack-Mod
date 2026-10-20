@@ -16,7 +16,7 @@
     ]
   },
   "mixins": [
-    "blackjackcalculator.mixins.json"
+    "hostalwayswins.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.19.2",
