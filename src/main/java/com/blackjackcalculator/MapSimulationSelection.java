@@ -8,9 +8,9 @@ public final class MapSimulationSelection {
     public static Integer selectDisplayId(int actualMapId, List<Integer> knownMapIds) {
         if (knownMapIds == null || knownMapIds.isEmpty()) return null;
         int index = knownMapIds.indexOf(actualMapId);
-        // A displayed map may not be one of the scanned IDs. Still map it to a
-        // scanned visual representation so the overlay works for nearby frames.
-        if (index < 0) return knownMapIds.get(0);
+        // Never substitute unscanned maps: only maps explicitly captured by the scan
+        // are eligible for the fake-map overlay.
+        if (index < 0) return null;
         if (knownMapIds.size() == 1) return knownMapIds.get(0);
         return knownMapIds.get((index + 1) % knownMapIds.size());
     }
