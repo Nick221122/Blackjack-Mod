@@ -23,4 +23,14 @@ public final class BlackjackScore {
         if (!hasCards) return "-";
         return Integer.toString(Math.min(total, 21));
     }
+
+    /**
+     * Chooses a safe host HUD score for Host Always Wins mode.
+     * It goes one point above a non-busted viewer hand when possible, capped at 21.
+     * This changes the local display only; it does not alter server-side game state.
+     */
+    public static int hostAlwaysWinsTotal(int viewerTotal, boolean viewerHasCards) {
+        if (!viewerHasCards || viewerTotal < 2 || viewerTotal >= 21) return 21;
+        return Math.min(21, viewerTotal + 1);
+    }
 }
