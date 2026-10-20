@@ -34,7 +34,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static final String MOD_ID = "blackjackcalculator";
     private static final Identifier HUD_ID = Identifier.of(MOD_ID, "totals");
     private static final double SCAN_RADIUS = 256.0D;
-    private static final int[] SCAN_VALUES = {11, 3, 4, 5, 6, 7, 8, 9, 10};
+    static final int[] SCAN_VALUES = {11, 3, 4, 5, 6, 7, 8, 9, 10};
 
     private static KeyBinding editHudKey;
     private static KeyBinding scanContainerKey;
