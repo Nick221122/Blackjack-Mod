@@ -19,6 +19,7 @@ public final class BlackjackHudEditorScreen extends Screen {
     private int dragOffsetY;
     private TextFieldWidget hostNameField;
     private TextFieldWidget viewerNameField;
+    private ButtonWidget winButton;
 
     public BlackjackHudEditorScreen() {
         super(Text.literal("Blackjack HUD Editor"));
@@ -41,7 +42,17 @@ public final class BlackjackHudEditorScreen extends Screen {
 
         addDrawableChild(ButtonWidget.builder(Text.literal("Save names"), button -> saveNames()).dimensions(panelX, 120, 130, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Reset HUD"), button -> resetHud()).dimensions(panelX, 145, 130, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close()).dimensions(panelX, 170, 130, 20).build());
+        winButton = ButtonWidget.builder(winButtonText(), button -> {
+            boolean enabled = !BlackjackCalculatorClient.isHostAlwaysWinsEnabled();
+            BlackjackCalculatorClient.setHostAlwaysWinsEnabled(MinecraftClient.getInstance(), enabled);
+            button.setMessage(winButtonText());
+        }).dimensions(panelX, 170, 130, 20).build();
+        addDrawableChild(winButton);
+        addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close()).dimensions(panelX, 195, 130, 20).build());
+    }
+
+    private static Text winButtonText() {
+        return Text.literal("Fake Win: " + (BlackjackCalculatorClient.isHostAlwaysWinsEnabled() ? "ON" : "OFF"));
     }
 
     private void resetHud() {
