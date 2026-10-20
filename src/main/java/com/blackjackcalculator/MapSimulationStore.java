@@ -47,6 +47,8 @@ public final class MapSimulationStore {
 
     public static MapState resolve(MapIdComponent actualMapId) {
         if (!enabled || actualMapId == null || REPRESENTATIONS.isEmpty()) return null;
+        // Never substitute an unrelated map: only IDs captured by the L scan are eligible.
+        if (!REPRESENTATIONS.containsKey(actualMapId.id())) return null;
 
         Integer displayId = MapSimulationSelection.selectDisplayId(actualMapId.id(), List.copyOf(REPRESENTATIONS.keySet()));
         return displayId == null ? null : REPRESENTATIONS.get(displayId);
