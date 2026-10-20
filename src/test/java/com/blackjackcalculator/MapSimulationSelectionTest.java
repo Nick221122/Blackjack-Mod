@@ -23,7 +23,7 @@ class MapSimulationSelectionTest {
     @Test
     void aSingleStoredRepresentationRemainsStable() {
         assertEquals(10, MapSimulationSelection.selectDisplayId(10, List.of(10)));
-        assertEquals(10, MapSimulationSelection.selectDisplayId(999, List.of(10)));
+        assertNull(MapSimulationSelection.selectDisplayId(999, List.of(10)));
     }
 
     @Test
