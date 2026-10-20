@@ -31,4 +31,14 @@ class BlackjackScoreTest {
         assertEquals("21", BlackjackScore.displayHost(30, true));
         assertEquals("-", BlackjackScore.displayHost(0, false));
     }
+
+    @Test
+    void hostAlwaysWinsSelectsTheNextHigherSafeScore() {
+        assertEquals(19, BlackjackScore.hostAlwaysWinsTotal(18, true));
+        assertEquals(20, BlackjackScore.hostAlwaysWinsTotal(19, true));
+        assertEquals(21, BlackjackScore.hostAlwaysWinsTotal(20, true));
+        assertEquals(21, BlackjackScore.hostAlwaysWinsTotal(21, true));
+        assertEquals(21, BlackjackScore.hostAlwaysWinsTotal(25, true));
+        assertEquals(21, BlackjackScore.hostAlwaysWinsTotal(0, false));
+    }
 }
