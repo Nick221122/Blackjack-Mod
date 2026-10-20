@@ -130,7 +130,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void onClientTick(MinecraftClient client) {
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
 
-        boolean rPressed = GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
+        boolean rPressed = client.currentScreen == null
+                && GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
         if (rPressed && !hostAlwaysWinsKeyDown) {
             setHostAlwaysWinsEnabled(client, !hostAlwaysWins);
         }
