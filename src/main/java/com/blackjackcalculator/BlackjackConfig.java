@@ -122,6 +122,7 @@ public final class BlackjackConfig {
     public static void clearSelection(Role role) { AUTO_SELECTED_FRAMES.remove(role); if (role == Role.HOST) { hostFirstFrame = null; hostSecondFrame = null; } else { viewerFirstFrame = null; viewerSecondFrame = null; } }
 
     public static int getScannedMapValue(String mapId) { Integer value = SHARED_SCANNED_MAPS.get(mapId); return value == null ? -1 : value; }
+    public static Map<String, Integer> getSharedScannedMaps() { return new LinkedHashMap<>(SHARED_SCANNED_MAPS); }
     public static void replaceSharedScan(Map<String, Integer> values) { SHARED_SCANNED_MAPS.clear(); SHARED_SCANNED_MAPS.putAll(values); }
     public static String getHostName() { return hostName; }
     public static String getViewerName() { return viewerName; }
