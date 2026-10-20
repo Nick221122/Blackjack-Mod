@@ -48,7 +48,10 @@ public final class HostAlwaysWinsStrategy {
             }
         }
         if (candidates.isEmpty()) return unchanged;
-        Collections.sort(candidates);
+        // Shuffle candidate faces for each activation so equally good hands don't always
+        // reuse the same ordered sequence of card faces.
+        Random random = new Random(seed);
+        Collections.shuffle(candidates, random);
 
         Map<State, List<Integer>> states = new LinkedHashMap<>();
         states.put(new State(0, 0), List.of());
@@ -118,8 +121,7 @@ public final class HostAlwaysWinsStrategy {
         }
         if (choices.isEmpty()) return unchanged;
 
-        // Stable for the same hand and Viewer score; changes only when that score changes.
-        Random random = new Random(seed);
+        // The caller supplies a fresh seed on each manual activation.
         Solution chosen = choices.get(random.nextInt(choices.size()));
         if (chosen.displayIds().size() != hostIds.size()) return unchanged;
 
