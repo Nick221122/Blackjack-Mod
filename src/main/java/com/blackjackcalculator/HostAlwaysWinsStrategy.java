@@ -1,9 +1,11 @@
 package com.blackjackcalculator;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * Picks fake map representations for host-side frames so the displayed host
@@ -37,6 +39,17 @@ public final class HostAlwaysWinsStrategy {
         hostIds.removeIf(id -> !availableMapValues.containsKey(id));
         if (hostIds.isEmpty()) return result;
 
+        // Use a per-hand seeded shuffle: card combinations vary naturally between
+        // hands, but stay fixed while the same hand is being recalculated every tick.
+        long seed = 0x9E3779B97F4A7C15L ^ viewerTotal;
+        for (int id : actualHostMapIds) seed = Long.rotateLeft(seed ^ id, 13) * 0xBF58476D1CE4E5B9L;
+        for (Map.Entry<Integer, Integer> entry : availableMapValues.entrySet()) {
+            seed = Long.rotateLeft(seed ^ entry.getKey(), 7) * 0x94D049BB133111EBL;
+            seed ^= entry.getValue();
+        }
+        List<Map.Entry<Integer, Integer>> shuffledOptions = new ArrayList<>(availableMapValues.entrySet());
+        Collections.shuffle(shuffledOptions, new Random(seed));
+
         Map<State, List<Integer>> states = new LinkedHashMap<>();
         states.put(new State(0, 0), List.of());
 
@@ -44,7 +57,7 @@ public final class HostAlwaysWinsStrategy {
             int count = occurrences.get(actualId);
             Map<State, List<Integer>> next = new LinkedHashMap<>();
             for (Map.Entry<State, List<Integer>> entry : states.entrySet()) {
-                for (Map.Entry<Integer, Integer> option : availableMapValues.entrySet()) {
+                for (Map.Entry<Integer, Integer> option : shuffledOptions) {
                     int value = option.getValue();
                     if (value < 1 || value > 11) continue;
                     State previous = entry.getKey();
