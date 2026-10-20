@@ -1,4 +1,4 @@
-package com.blackjackcalculator;
+package com.hostalwayswins;
 
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
