@@ -1,4 +1,4 @@
-package com.blackjackcalculator;
+package com.hostalwayswins;
 
 import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.item.map.MapState;
