@@ -20,7 +20,7 @@ public final class BlackjackConfig {
     public enum Role { HOST, VIEWER }
     public record FrameSelection(String firstKey, String secondKey) {}
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final String FILE_NAME = "blackjackcalculator.json";
+    private static final String FILE_NAME = "hostalwayswins.json";
     private static int hostX = -1, hostY = 8, viewerX = 8, viewerY = 8;
     private static float hostScale = 1.0f, viewerScale = 1.0f;
     private static String hostName = "Host", viewerName = "Viewer";
