@@ -4,6 +4,9 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,9 +25,16 @@ jobs:
       - name: Build mod
         run: gradle clean build --no-daemon --stacktrace
       - name: Verify production JAR
-        run: test -f build/libs/blackjack-calculator-1.21.11.jar
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Contents of build/libs:"
+          ls -lah build/libs
+          test -f build/libs/blackjack-calculator-1.21.11.jar
       - name: Upload mod JAR
         uses: actions/upload-artifact@v4
         with:
           name: blackjack-calculator-1.21.11
           path: build/libs/blackjack-calculator-1.21.11.jar
+          if-no-files-found: error
+          retention-days: 14
