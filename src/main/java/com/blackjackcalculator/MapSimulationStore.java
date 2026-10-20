@@ -22,6 +22,10 @@ public final class MapSimulationStore {
         return REPRESENTATIONS.containsKey(mapId);
     }
 
+    public static MapState representation(int mapId) {
+        return REPRESENTATIONS.get(mapId);
+    }
+
     public static void setEnabled(boolean value) {
         enabled = value;
         if (!value) HOST_DISPLAY_OVERRIDES.clear();
