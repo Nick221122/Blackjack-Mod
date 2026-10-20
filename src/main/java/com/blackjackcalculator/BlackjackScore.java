@@ -30,26 +30,23 @@ public final class BlackjackScore {
     }
 
     /**
-     * Returns a client-side host HUD score based on the number of host cards/maps.
+     * Returns the client-side Host Always Wins HUD total, independent of how many
+     * host maps are currently displayed. Against a valid viewer score below 21,
+     * the host shows a higher total; 21 is the best possible total against 21 or bust.
      * randomRoll is supplied by the caller so the selection can be cached per hand.
-     * The host never displays a bust and does not jump to a winning score from one card.
      */
     public static int hostAlwaysWinsTotal(int viewerTotal, boolean viewerHasCards, int hostCardCount, int randomRoll) {
         if (hostCardCount <= 0) return 0;
 
         int min;
         int max;
-        if (hostCardCount == 1) {
-            min = 2;
-            max = 11;
-        } else if (hostCardCount == 2) {
-            min = 12;
-            max = 17;
-        } else if (!viewerHasCards || viewerTotal > 21) {
+        if (!viewerHasCards || viewerTotal > 21) {
             min = 17;
             max = 21;
+        } else if (viewerTotal >= 21) {
+            return 21;
         } else {
-            min = Math.min(21, Math.max(18, viewerTotal + 1));
+            min = viewerTotal + 1;
             max = 21;
         }
 
