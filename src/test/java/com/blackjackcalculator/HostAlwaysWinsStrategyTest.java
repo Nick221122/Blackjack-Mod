@@ -19,7 +19,7 @@ class HostAlwaysWinsStrategyTest {
     @Test
     void choosesFakeMapsThatBeatViewerWithoutBustWhenPossible() {
         Map<Integer, Integer> choices = HostAlwaysWinsStrategy.chooseDisplayIds(
-                List.of(101, 102), values(1, 8, 2, 9, 3, 10, 4, 11), 18, true);
+                List.of(1, 2), values(1, 8, 2, 9, 3, 10, 4, 11), 18, true);
 
         assertEquals(2, choices.size());
         int total = 0;
@@ -36,7 +36,7 @@ class HostAlwaysWinsStrategyTest {
     @Test
     void choosesDealerMinimumWhenViewerHasALowTotal() {
         Map<Integer, Integer> choices = HostAlwaysWinsStrategy.chooseDisplayIds(
-                List.of(101, 102), values(1, 3, 2, 8, 3, 9), 10, true);
+                List.of(1, 2), values(1, 3, 2, 8, 3, 9), 10, true);
 
         int total = 0;
         for (int id : choices.values()) total += values(1, 3, 2, 8, 3, 9).get(id);
@@ -52,7 +52,7 @@ class HostAlwaysWinsStrategyTest {
     @Test
     void withNoViewerCardsStillTargetsDealerStandingRange() {
         Map<Integer, Integer> choices = HostAlwaysWinsStrategy.chooseDisplayIds(
-                List.of(101, 102), values(1, 8, 2, 9, 3, 10), 0, false);
+                List.of(1, 2), values(1, 8, 2, 9, 3, 10), 0, false);
         int total = 0;
         for (int id : choices.values()) total += values(1, 8, 2, 9, 3, 10).get(id);
         assertTrue(total >= 17 && total <= 21);
