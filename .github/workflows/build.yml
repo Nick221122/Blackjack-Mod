@@ -1,4 +1,4 @@
-name: Build Blackjack Calculator
+name: Build Host Always Wins Mod
 
 on:
   push:
@@ -22,9 +22,9 @@ jobs:
       - name: Build mod
         run: gradle clean build --no-daemon --stacktrace
       - name: Verify production JAR
-        run: test -f build/libs/blackjack-calculator-1.21.11.jar
+        run: test -f build/libs/host-always-wins-1.21.11.jar
       - name: Upload mod JAR
         uses: actions/upload-artifact@v4
         with:
-          name: blackjack-calculator-1.21.11
-          path: build/libs/blackjack-calculator-1.21.11.jar
+          name: host-always-wins-1.21.11
+          path: build/libs/host-always-wins-1.21.11.jar
