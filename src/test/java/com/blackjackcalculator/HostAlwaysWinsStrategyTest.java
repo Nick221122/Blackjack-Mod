@@ -16,10 +16,10 @@ class HostAlwaysWinsStrategyTest {
     @Test
     void choosesAValidWinningTotalRandomlyWhenViewerHasSeventeen() {
         Map<Integer, Integer> overrides = HostAlwaysWinsStrategy.chooseDisplayIds(
-                List.of(20, 21), Set.of(), VALUES, 17, true, 42L);
+                List.of(8, 9), Set.of(), VALUES, 17, true, 42L);
 
         assertEquals(2, overrides.size());
-        int total = scoreDisplayIds(overrides, List.of(20, 21), VALUES);
+        int total = scoreDisplayIds(overrides, List.of(8, 9), VALUES);
         assertTrue(total >= 18 && total <= 21, "host total should beat 17 without busting");
     }
 
