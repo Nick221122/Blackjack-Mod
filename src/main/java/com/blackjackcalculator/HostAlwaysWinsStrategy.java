@@ -62,7 +62,6 @@ public final class HostAlwaysWinsStrategy {
             } else {
                 // Prefer a different captured map so Host-exclusive cards visibly use a fake face.
                 options = candidates.stream().filter(id -> id != actualId).toList();
-                if (options.isEmpty()) options = candidates;
             }
             Map<State, List<Integer>> next = new LinkedHashMap<>();
             for (Map.Entry<State, List<Integer>> entry : states.entrySet()) {
