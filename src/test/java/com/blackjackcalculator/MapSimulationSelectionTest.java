@@ -16,8 +16,8 @@ class MapSimulationSelectionTest {
     }
 
     @Test
-    void unknownDisplayedMapIdsFallBackToFirstScannedRepresentation() {
-        assertEquals(10, MapSimulationSelection.selectDisplayId(999, List.of(10, 20)));
+    void unknownDisplayedMapIdsAreNotSimulated() {
+        assertNull(MapSimulationSelection.selectDisplayId(999, List.of(10, 20)));
     }
 
     @Test
