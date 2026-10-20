@@ -247,7 +247,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             try {
                 int id = Integer.parseInt(entry.getKey());
                 int value = entry.getValue();
-                if (value >= 1 && value <= 11) availableMapValues.put(id, value);
+                if (value >= 1 && value <= 11 && MapSimulationStore.hasRepresentation(id)) availableMapValues.put(id, value);
             } catch (NumberFormatException ignored) {
                 // Old config entries used MapIdComponent.toString(); a fresh scan normalizes them.
             }
