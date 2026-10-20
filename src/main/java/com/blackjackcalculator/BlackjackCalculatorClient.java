@@ -303,7 +303,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
                 ? (hostHasCards ? Integer.toString(randomizedWinningHostTotal()) : "-")
                 : hostDisplay();
         String viewerScore = hostAlwaysWins
-                ? (!viewerHasCards ? "-" : viewerTotal > 21 ? "BUST" : "LOSE")
+                ? BlackjackScore.displayViewerWhenHostAlwaysWins(viewerTotal, viewerHasCards)
                 : BlackjackScore.display(viewerTotal, viewerHasCards);
         drawTotal(context, client, BlackjackConfig.getHostName(), hostScore, true);
         drawTotal(context, client, BlackjackConfig.getViewerName(), viewerScore, false);
