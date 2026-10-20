@@ -33,6 +33,16 @@ class HostAlwaysWinsStrategyTest {
     }
 
     @Test
+    void stillChoosesAFakeNonBustFaceWhenHostCannotReachSeventeen() {
+        Map<Integer, Integer> overrides = HostAlwaysWinsStrategy.chooseDisplayIds(
+                List.of(2), Set.of(), VALUES, 17, true, 11L);
+
+        assertEquals(1, overrides.size());
+        assertNotEquals(2, overrides.get(2), "Host-exclusive card should use a fake face when alternatives exist");
+        assertTrue(VALUES.get(overrides.get(2)) <= 11);
+    }
+
+    @Test
     void leavesInputsWithoutScannedRepresentationsUnchanged() {
         assertTrue(HostAlwaysWinsStrategy.chooseDisplayIds(
                 List.of(99), Set.of(), VALUES, 17, true, 7L).isEmpty());
