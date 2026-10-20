@@ -35,6 +35,12 @@ class BlackjackScoreTest {
     }
 
     @Test
+    void twoFakeEightsStillCountAsSixteenWhenHostAlwaysWinsIsEnabled() {
+        assertEquals(16, BlackjackScore.score(16, 0));
+        assertEquals("16", BlackjackScore.display(16, true));
+    }
+
+    @Test
     void hostDisplayNeverShowsBust() {
         assertEquals("21", BlackjackScore.displayHost(22, true));
         assertEquals("21", BlackjackScore.displayHost(30, true));
