@@ -43,6 +43,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static KeyBinding scanContainerKey;
     private static int hostTotal, viewerTotal;
     private static boolean hostHasCards, viewerHasCards;
+    private static boolean hostAlwaysWins;
+    private static boolean hostAlwaysWinsKeyDown;
 
     @Override
     public void onInitializeClient() {
@@ -83,6 +85,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             if (stack.isEmpty()) continue;
             String mapId = mapIdSignature(stack);
             if (mapId == null) continue;
+            MapIdComponent component = stack.get(DataComponentTypes.MAP_ID);
+            if (component != null) MapSimulationStore.capture(component.id(), client.world.getMapState(component));
             scanned.putIfAbsent(mapId, SCAN_VALUES[slot]);
             occupied++;
         }
@@ -116,11 +120,21 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     static String mapIdSignature(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return null;
         MapIdComponent mapId = stack.get(DataComponentTypes.MAP_ID);
-        return mapId == null ? null : mapId.toString();
+        return mapId == null ? null : Integer.toString(mapId.id());
     }
 
     private static void onClientTick(MinecraftClient client) {
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
+
+        boolean rPressed = GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
+        if (rPressed && !hostAlwaysWinsKeyDown) {
+            hostAlwaysWins = !hostAlwaysWins;
+            MapSimulationStore.setEnabled(hostAlwaysWins);
+            if (client.player != null) {
+                client.player.sendMessage(Text.literal("Host Always Wins: " + (hostAlwaysWins ? "ON" : "OFF")), true);
+            }
+        }
+        hostAlwaysWinsKeyDown = rPressed;
         updateTotals(client);
     }
 
@@ -217,35 +231,90 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         if (client.player == null || client.world == null) {
             hostTotal = viewerTotal = 0;
             hostHasCards = viewerHasCards = false;
+            MapSimulationStore.setHostDisplayOverrides(Map.of());
             return;
         }
+
         Box box = client.player.getBoundingBox().expand(SCAN_RADIUS);
-        List<ItemFrameEntity> frames = client.world.getEntitiesByClass(ItemFrameEntity.class, box, frame -> !frame.isRemoved() && !frame.getHeldItemStack().isEmpty());
-        int hostFixed = 0, hostAces = 0, viewerFixed = 0, viewerAces = 0;
+        List<ItemFrameEntity> frames = client.world.getEntitiesByClass(
+                ItemFrameEntity.class, box,
+                frame -> !frame.isRemoved() && !frame.getHeldItemStack().isEmpty());
+
+        List<Integer> hostMapIds = new java.util.ArrayList<>();
+        java.util.Set<Integer> viewerMapIds = new java.util.LinkedHashSet<>();
+        Map<Integer, Integer> availableMapValues = new java.util.LinkedHashMap<>();
+        for (Map.Entry<String, Integer> entry : BlackjackConfig.getSharedScannedMaps().entrySet()) {
+            try {
+                int id = Integer.parseInt(entry.getKey());
+                int value = entry.getValue();
+                if (value >= 1 && value <= 11) availableMapValues.put(id, value);
+            } catch (NumberFormatException ignored) {
+                // Old config entries used MapIdComponent.toString(); a fresh scan normalizes them.
+            }
+        }
+
+        int viewerFixed = 0, viewerAces = 0;
         boolean foundHost = false, foundViewer = false;
         for (ItemFrameEntity frame : frames) {
             boolean inHost = isFrameInsideSelection(client, frame, BlackjackConfig.Role.HOST);
             boolean inViewer = isFrameInsideSelection(client, frame, BlackjackConfig.Role.VIEWER);
-            BlackjackConfig.Role role = inHost && !inViewer ? BlackjackConfig.Role.HOST : inViewer && !inHost ? BlackjackConfig.Role.VIEWER : null;
+            BlackjackConfig.Role role = inHost && !inViewer ? BlackjackConfig.Role.HOST
+                    : inViewer && !inHost ? BlackjackConfig.Role.VIEWER : null;
             if (role == null) continue;
-            String mapId = mapIdSignature(frame.getHeldItemStack());
-            if (mapId == null) continue;
-            int value = BlackjackConfig.getScannedMapValue(mapId);
-            if (value < 0) continue;
-            if (role == BlackjackConfig.Role.HOST) {
-                foundHost = true;
-                if (value == 11) hostAces++;
-                else hostFixed += value;
-            } else {
+
+            String mapIdText = mapIdSignature(frame.getHeldItemStack());
+            if (mapIdText == null) continue;
+            int mapId;
+            try {
+                mapId = Integer.parseInt(mapIdText);
+            } catch (NumberFormatException ignored) {
+                continue;
+            }
+
+            int value = BlackjackConfig.getScannedMapValue(mapIdText);
+            if (role == BlackjackConfig.Role.VIEWER) {
+                viewerMapIds.add(mapId);
+                if (value < 0) continue;
                 foundViewer = true;
                 if (value == 11) viewerAces++;
                 else viewerFixed += value;
+            } else {
+                if (value < 0) continue;
+                foundHost = true;
+                hostMapIds.add(mapId);
             }
         }
-        hostHasCards = foundHost;
+
         viewerHasCards = foundViewer;
-        hostTotal = BlackjackScore.score(hostFixed, hostAces);
         viewerTotal = BlackjackScore.score(viewerFixed, viewerAces);
+        Map<Integer, Integer> displayIds = Map.of();
+        if (hostAlwaysWins && foundHost && !availableMapValues.isEmpty()) {
+            long seed = 0x9E3779B97F4A7C15L ^ viewerTotal;
+            for (int id : hostMapIds) {
+                seed = Long.rotateLeft(seed ^ id, 13) * 0xBF58476D1CE4E5B9L;
+            }
+            for (Map.Entry<Integer, Integer> entry : availableMapValues.entrySet()) {
+                seed = Long.rotateLeft(seed ^ entry.getKey(), 7) * 0x94D049BB133111EBL;
+                seed ^= entry.getValue();
+            }
+            displayIds = HostAlwaysWinsStrategy.chooseDisplayIds(
+                    hostMapIds, viewerMapIds, availableMapValues, viewerTotal, foundViewer, seed);
+            MapSimulationStore.setHostDisplayOverrides(displayIds);
+        } else {
+            MapSimulationStore.setHostDisplayOverrides(Map.of());
+        }
+
+        int hostFixed = 0, hostAces = 0;
+        for (int actualId : hostMapIds) {
+            int displayId = displayIds.getOrDefault(actualId, actualId);
+            int value = availableMapValues.getOrDefault(
+                    displayId, BlackjackConfig.getScannedMapValue(Integer.toString(displayId)));
+            if (value < 1 || value > 11) continue;
+            if (value == 11) hostAces++;
+            else hostFixed += value;
+        }
+        hostHasCards = foundHost;
+        hostTotal = BlackjackScore.score(hostFixed, hostAces);
     }
 
     private static boolean isFrameInsideSelection(MinecraftClient client, ItemFrameEntity frame, BlackjackConfig.Role role) {
