@@ -294,7 +294,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         if (hostAlwaysWins && fakeWinRecalculateRequested && foundHost && !availableMapValues.isEmpty()) {
             // Calculate the fake faces only in direct response to pressing R to enable Fake Win.
             // After this snapshot is made, card placement and Viewer score updates cannot alter it.
-            long seed = 0x9E3779B97F4A7C15L ^ viewerTotal;
+            // Each manual activation gets a fresh randomized but fixed snapshot.
+            long seed = System.nanoTime() ^ (0x9E3779B97F4A7C15L * (long) viewerTotal);
             for (int id : hostMapIds) {
                 seed = Long.rotateLeft(seed ^ id, 13) * 0xBF58476D1CE4E5B9L;
             }
@@ -393,7 +394,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null || client.world == null || client.options.hudHidden) return;
+        if (client.player == null || client.world == null
+                || (client.options.hudHidden && !hostAlwaysWins)) return;
         drawTotal(context, client, BlackjackConfig.getHostName(), BlackjackScore.display(hostTotal, hostHasCards), true);
         drawTotal(context, client, BlackjackConfig.getViewerName(), BlackjackScore.display(viewerTotal, viewerHasCards), false);
     }
