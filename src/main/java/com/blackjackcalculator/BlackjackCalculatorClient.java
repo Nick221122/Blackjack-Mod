@@ -314,14 +314,11 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null || client.options.hudHidden) return;
-        // Pick one randomized local score per hand stage so it stays stable between frames.
-        // This changes the client HUD only; server-authoritative game state is untouched.
-        String hostScore = hostAlwaysWins
-                ? (hostHasCards ? Integer.toString(randomizedWinningHostTotal()) : "-")
-                : hostDisplay();
-        String viewerScore = hostAlwaysWins
-                ? BlackjackScore.displayViewerWhenHostAlwaysWins(viewerTotal, viewerHasCards)
-                : BlackjackScore.display(viewerTotal, viewerHasCards);
+        // Keep each side's total faithful to the fake map values being displayed.
+        // Host Always Wins is shown as a separate indicator instead of falsifying the sum.
+        String hostScore = hostDisplay();
+        if (hostAlwaysWins && hostHasCards) hostScore += " (WIN)";
+        String viewerScore = BlackjackScore.display(viewerTotal, viewerHasCards);
         drawTotal(context, client, BlackjackConfig.getHostName(), hostScore, true);
         drawTotal(context, client, BlackjackConfig.getViewerName(), viewerScore, false);
         String status = "HOST ALWAYS WINS: " + (hostAlwaysWins ? "ON" : "OFF");
@@ -348,22 +345,6 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     static int resolveHudX(boolean host, int configuredX, int textWidth, int screenWidth) {
         if (host && configuredX < 0) return Math.max(0, screenWidth - textWidth - 8);
         return Math.max(0, configuredX);
-    }
-
-    private static int randomizedWinningHostTotal() {
-        if (cachedHostCardCount != hostCardCount
-                || cachedViewerTotal != viewerTotal
-                || cachedViewerHasCards != viewerHasCards) {
-            cachedHostCardCount = hostCardCount;
-            cachedViewerTotal = viewerTotal;
-            cachedViewerHasCards = viewerHasCards;
-            cachedWinningHostScore = BlackjackScore.hostAlwaysWinsTotal(
-                    viewerTotal,
-                    viewerHasCards,
-                    hostCardCount,
-                    java.util.concurrent.ThreadLocalRandom.current().nextInt());
-        }
-        return cachedWinningHostScore;
     }
 
     private static String hostDisplay() {
