@@ -1,6 +1,6 @@
-package com.blackjackcalculator.mixin;
+package com.hostalwayswins.mixin;
 
-import com.blackjackcalculator.MapSimulationStore;
+import com.hostalwayswins.MapSimulationStore;
 import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.item.map.MapState;
 import org.spongepowered.asm.mixin.Mixin;
