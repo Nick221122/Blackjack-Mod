@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "com.hostalwayswins.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MapTextureManagerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
