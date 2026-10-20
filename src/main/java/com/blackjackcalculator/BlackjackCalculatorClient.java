@@ -274,8 +274,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             }
 
             viewerMapIds.add(actualId);
-            Integer displayedId = MapSimulationStore.isEnabled()
-                    ? MapSimulationStore.defaultDisplayMapId(actualId) : actualId;
+            Integer displayedId = resolveDisplayMapId(actualId, MapSimulationStore.isEnabled(),
+                    MapSimulationStore.defaultDisplayMapId(actualId));
             if (displayedId == null) continue;
             int value = BlackjackConfig.getScannedMapValue(Integer.toString(displayedId));
             if (value < 0) continue;
@@ -314,8 +314,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             } catch (NumberFormatException ignored) {
                 continue;
             }
-            Integer displayedId = MapSimulationStore.isEnabled()
-                    ? MapSimulationStore.displayMapId(actualId) : actualId;
+            Integer displayedId = resolveDisplayMapId(actualId, MapSimulationStore.isEnabled(),
+                    MapSimulationStore.displayMapId(actualId));
             if (displayedId == null) continue;
             int value = BlackjackConfig.getScannedMapValue(Integer.toString(displayedId));
             if (value < 0) continue;
@@ -384,6 +384,12 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         context.getMatrices().scale(scale, scale);
         context.drawText(client.textRenderer, text, 0, 0, color, true);
         context.getMatrices().popMatrix();
+    }
+
+    static int resolveDisplayMapId(int actualMapId, boolean simulationEnabled, Integer simulatedMapId) {
+        // Do not let a missing local map representation trigger ternary unboxing NPEs.
+        // An unavailable simulation should fall back to the actual ID (which may be unscanned).
+        return simulationEnabled && simulatedMapId != null ? simulatedMapId : actualMapId;
     }
 
     static int resolveHudX(boolean host, int configuredX, int textWidth, int screenWidth) {
