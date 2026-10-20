@@ -314,10 +314,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null || client.options.hudHidden) return;
-        // Keep each side's total faithful to the fake map values being displayed.
-        // Host Always Wins is shown as a separate indicator instead of falsifying the sum.
+        // Show the score calculated from fake map values; never append a fake WIN result.
         String hostScore = hostDisplay();
-        if (hostAlwaysWins && hostHasCards) hostScore += " (WIN)";
         String viewerScore = BlackjackScore.display(viewerTotal, viewerHasCards);
         drawTotal(context, client, BlackjackConfig.getHostName(), hostScore, true);
         drawTotal(context, client, BlackjackConfig.getViewerName(), viewerScore, false);
