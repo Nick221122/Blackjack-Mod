@@ -1,4 +1,4 @@
-package com.blackjackcalculator;
+package com.hostalwayswins;
 
 /** Pure blackjack scoring logic. An Ace starts as 11 and becomes 1 when needed. */
 public final class BlackjackScore {
