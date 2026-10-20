@@ -93,6 +93,13 @@ public final class BlackjackConfig {
     public static void setSecondSelection(Role role, String key) { if (role == Role.HOST) hostSecondFrame = key; else viewerSecondFrame = key; }
     public static FrameSelection getSelection(Role role) { return role == Role.HOST ? new FrameSelection(hostFirstFrame, hostSecondFrame) : new FrameSelection(viewerFirstFrame, viewerSecondFrame); }
     public static int getScannedMapValue(String mapId) { Integer value = SHARED_SCANNED_MAPS.get(mapId); return value == null ? -1 : value; }
+    public static Map<Integer, Integer> getScannedMapValuesById() {
+        Map<Integer, Integer> values = new LinkedHashMap<>();
+        SHARED_SCANNED_MAPS.forEach((id, value) -> {
+            try { values.put(Integer.parseInt(id), value); } catch (NumberFormatException ignored) {}
+        });
+        return values;
+    }
     public static void replaceSharedScan(Map<String, Integer> values) { SHARED_SCANNED_MAPS.clear(); SHARED_SCANNED_MAPS.putAll(values); }
     public static String getHostName() { return hostName; }
     public static String getViewerName() { return viewerName; }
