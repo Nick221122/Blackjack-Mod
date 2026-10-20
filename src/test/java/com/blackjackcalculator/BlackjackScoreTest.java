@@ -41,10 +41,18 @@ class BlackjackScoreTest {
     }
 
     @Test
-    void hostDisplayNeverShowsBust() {
-        assertEquals("21", BlackjackScore.displayHost(22, true));
-        assertEquals("21", BlackjackScore.displayHost(30, true));
+    void hostDisplayReportsTheActualTotalIncludingBust() {
+        assertEquals("BUST", BlackjackScore.displayHost(22, true));
+        assertEquals("BUST", BlackjackScore.displayHost(30, true));
         assertEquals("-", BlackjackScore.displayHost(0, false));
+    }
+
+    @Test
+    void fakeOverlayValuesKeepBlackjackAceScoringAccurate() {
+        assertEquals(19, BlackjackScore.score(8, 1));
+        assertEquals("19", BlackjackScore.displayHost(BlackjackScore.score(8, 1), true));
+        assertEquals(21, BlackjackScore.score(10, 1));
+        assertEquals("21", BlackjackScore.displayHost(BlackjackScore.score(10, 1), true));
     }
 
     @Test
