@@ -161,7 +161,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     static String mapIdSignature(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return null;
         MapIdComponent mapId = stack.get(DataComponentTypes.MAP_ID);
-        return mapId == null ? null : mapId.toString();
+        // Use the stable numeric map ID for both the dispenser scan and frame lookup.
+        return mapId == null ? null : Integer.toString(mapId.id());
     }
 
     private static void onClientTick(MinecraftClient client) {
