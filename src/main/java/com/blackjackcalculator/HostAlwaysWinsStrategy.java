@@ -93,17 +93,33 @@ public final class HostAlwaysWinsStrategy {
             anyNonBust.add(solution);
             if (total >= 17) {
                 fallback.add(solution);
-                if (!viewerHasCards || viewerTotal > 21 || total > viewerTotal) {
-                    legal.add(solution);
-                }
+                boolean beatsViewer = !viewerHasCards || viewerTotal > 21
+                        || (viewerTotal < 21 && total > viewerTotal)
+                        || (viewerTotal == 21 && total == 21);
+                if (beatsViewer) legal.add(solution);
             }
         }
-        // If the Host has too few cards to reach 17, still show a simulated non-bust hand.
-        List<Solution> choices = !legal.isEmpty() ? legal
-                : !fallback.isEmpty() ? fallback : anyNonBust;
+
+        // Aim for the lowest winning total or a 21 tie: 17 -> 18-21,
+        // 18 -> 19-21, 19 -> 20-21, and 20/21 -> exactly 21.
+        List<Solution> choices = legal;
+        if (viewerHasCards && viewerTotal >= 17 && viewerTotal <= 21 && !legal.isEmpty()) {
+            int targetMinimum = viewerTotal >= 20 ? 21 : viewerTotal + 1;
+            choices = legal.stream().filter(solution -> solution.total() >= targetMinimum).toList();
+        }
+        if (choices.isEmpty()) {
+            // If a perfect win is impossible with the captured faces, keep the best
+            // non-bust Host face available rather than reverting to the original cards.
+            int bestTotal = fallback.stream().mapToInt(Solution::total).max().orElse(-1);
+            if (bestTotal >= 17) {
+                choices = fallback.stream().filter(solution -> solution.total() == bestTotal).toList();
+            } else {
+                choices = anyNonBust;
+            }
+        }
         if (choices.isEmpty()) return unchanged;
 
-        // Stable for the same hand, but changes as the hand or Viewer total changes.
+        // Stable for the same hand and Viewer score; changes only when that score changes.
         Random random = new Random(seed);
         Solution chosen = choices.get(random.nextInt(choices.size()));
         if (chosen.displayIds().size() != hostIds.size()) return unchanged;
