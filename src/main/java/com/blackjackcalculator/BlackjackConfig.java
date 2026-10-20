@@ -1,4 +1,4 @@
-package com.blackjackcalculator;
+package com.hostalwayswins;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
