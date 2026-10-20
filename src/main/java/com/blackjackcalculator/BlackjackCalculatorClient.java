@@ -287,10 +287,16 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null || client.options.hudHidden) return;
-        // Keep real item stacks untouched; only the local display is forced to a winning score.
-        // Host Always Wins cannot display a bust and may show 21 when enabled.
-        drawTotal(context, client, BlackjackConfig.getHostName(), hostAlwaysWins ? "21" : hostDisplay(), true);
-        drawTotal(context, client, BlackjackConfig.getViewerName(), hostAlwaysWins ? "LOSE" : BlackjackScore.display(viewerTotal, viewerHasCards), false);
+        // Host Always Wins chooses a safe score above the viewer's hand where possible.
+        // This is a local HUD override; the server's actual game result is unchanged.
+        String hostScore = hostAlwaysWins
+                ? Integer.toString(BlackjackScore.hostAlwaysWinsTotal(viewerTotal, viewerHasCards))
+                : hostDisplay();
+        String viewerScore = hostAlwaysWins
+                ? (viewerHasCards && viewerTotal > 21 ? "BUST" : "LOSE")
+                : BlackjackScore.display(viewerTotal, viewerHasCards);
+        drawTotal(context, client, BlackjackConfig.getHostName(), hostScore, true);
+        drawTotal(context, client, BlackjackConfig.getViewerName(), viewerScore, false);
         String status = "HOST ALWAYS WINS: " + (hostAlwaysWins ? "ON" : "OFF");
         int statusColor = hostAlwaysWins ? 0xFF55FF55 : 0xFFFF5555;
         context.drawText(client.textRenderer, status,
