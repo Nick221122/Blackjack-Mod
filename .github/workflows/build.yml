@@ -37,7 +37,7 @@ jobs:
           test -f "$jar_path"
           unzip -t "$jar_path"
           unzip -p "$jar_path" fabric.mod.json > /tmp/fabric.mod.json
-          grep -q '"id"[[:space:]]*:[[:space:]]*"blackjack-calculator"' /tmp/fabric.mod.json
+          grep -q '"id"[[:space:]]*:[[:space:]]*"blackjackcalculator"' /tmp/fabric.mod.json
 
           echo "Verified mod metadata in $jar_path"
           cat /tmp/fabric.mod.json
