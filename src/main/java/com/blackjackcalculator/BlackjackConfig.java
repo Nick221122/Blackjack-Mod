@@ -70,7 +70,21 @@ public final class BlackjackConfig {
     private static void loadMap(JsonObject root, String key, Map<String, Integer> target) {
         if (!root.has(key) || !root.get(key).isJsonObject()) return;
         root.getAsJsonObject(key).entrySet().forEach(e -> {
-            try { target.put(e.getKey(), e.getValue().getAsInt()); } catch (Exception ignored) {}
+            try {
+                String mapKey = e.getKey();
+                // Older builds persisted MapIdComponent.toString() instead of the numeric ID.
+                int marker = mapKey.lastIndexOf("id=");
+                if (marker >= 0 && mapKey.endsWith("]")) {
+                    String numericId = mapKey.substring(marker + 3, mapKey.length() - 1);
+                    try {
+                        Integer.parseInt(numericId);
+                        mapKey = numericId;
+                    } catch (NumberFormatException ignored) {
+                        // Preserve unknown keys; they will be ignored by the winning strategy.
+                    }
+                }
+                target.put(mapKey, e.getValue().getAsInt());
+            } catch (Exception ignored) {}
         });
     }
 
