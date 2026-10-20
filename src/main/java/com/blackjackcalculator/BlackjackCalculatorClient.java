@@ -252,6 +252,18 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             if (role == null) continue;
             String mapId = mapIdSignature(frame.getHeldItemStack());
             if (mapId == null) continue;
+            // When the fake-map overlay is active, score the fake map actually shown,
+            // not the underlying map ID. Unscanned maps are never simulated or counted.
+            if (MapSimulationStore.isEnabled()) {
+                Integer displayedMapId;
+                try {
+                    displayedMapId = MapSimulationStore.displayMapId(Integer.parseInt(mapId));
+                } catch (NumberFormatException ignored) {
+                    continue;
+                }
+                if (displayedMapId == null) continue;
+                mapId = Integer.toString(displayedMapId);
+            }
             int value = BlackjackConfig.getScannedMapValue(mapId);
             if (value < 0) continue;
             if (role == BlackjackConfig.Role.HOST) {
