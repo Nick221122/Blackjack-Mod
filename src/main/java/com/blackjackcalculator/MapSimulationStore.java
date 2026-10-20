@@ -47,6 +47,10 @@ public final class MapSimulationStore {
         HOST_DISPLAY_OVERRIDES.clear();
     }
 
+    public static boolean hasRepresentation(int mapId) {
+        return REPRESENTATIONS.containsKey(mapId);
+    }
+
     public static void setHostDisplayOverrides(Map<Integer, Integer> overrides) {
         HOST_DISPLAY_OVERRIDES.clear();
         if (overrides != null) {
