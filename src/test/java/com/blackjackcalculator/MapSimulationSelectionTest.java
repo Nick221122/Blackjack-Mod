@@ -16,14 +16,14 @@ class MapSimulationSelectionTest {
     }
 
     @Test
-    void unknownMapIdsAreNotSimulated() {
-        assertNull(MapSimulationSelection.selectDisplayId(999, List.of(10, 20)));
+    void unknownDisplayedMapIdsFallBackToFirstScannedRepresentation() {
+        assertEquals(10, MapSimulationSelection.selectDisplayId(999, List.of(10, 20)));
     }
 
     @Test
     void aSingleStoredRepresentationRemainsStable() {
         assertEquals(10, MapSimulationSelection.selectDisplayId(10, List.of(10)));
-        assertNull(MapSimulationSelection.selectDisplayId(999, List.of(10)));
+        assertEquals(10, MapSimulationSelection.selectDisplayId(999, List.of(10)));
     }
 
     @Test
