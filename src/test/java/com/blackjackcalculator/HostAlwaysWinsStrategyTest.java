@@ -44,6 +44,21 @@ class HostAlwaysWinsStrategyTest {
     }
 
     @Test
+    void choicesAreStableForTheSameHandSoVisualsDoNotFlicker() {
+        List<Integer> hostFrames = List.of(101, 102, 103);
+        Map<Integer, Integer> available = values(1, 3, 2, 6, 3, 8, 4, 9, 5, 10, 6, 11);
+
+        Map<Integer, Integer> first = HostAlwaysWinsStrategy.chooseDisplayIds(
+                hostFrames, available, 18, true);
+        Map<Integer, Integer> second = HostAlwaysWinsStrategy.chooseDisplayIds(
+                hostFrames, available, 18, true);
+
+        assertEquals(first, second);
+        int score = scoreForHostFrames(hostFrames, first, available);
+        assertTrue(score > 18 && score <= 21);
+    }
+
+    @Test
     void repeatedHostMapIdsAreCountedForEveryFrame() {
         List<Integer> hostFrames = List.of(1, 1, 2);
         Map<Integer, Integer> available = values(1, 10, 2, 10, 3, 9, 4, 11);
