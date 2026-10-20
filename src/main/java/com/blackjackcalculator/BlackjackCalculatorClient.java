@@ -164,6 +164,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         boolean rPressed = GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
         if (isNewMapSimulationKeyPress(rPressed, hostAlwaysWinsKeyDown)) {
             hostAlwaysWins = !hostAlwaysWins;
+            // Keep the map-image overlay synchronized with Host Always Wins.
+            MapSimulationStore.setEnabled(hostAlwaysWins);
             if (client.player != null) {
                 client.player.sendMessage(Text.literal("Host Always Wins: " + (hostAlwaysWins ? "ON" : "OFF")), true);
             }
@@ -285,10 +287,10 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null || client.options.hudHidden) return;
-        // Keep the real item stacks untouched; only the displayed scores are faked while enabled.
-        // Use ordinary totals below 21 so the forced win never displays a blackjack (21).
-        drawTotal(context, client, BlackjackConfig.getHostName(), hostAlwaysWins ? "20" : hostDisplay(), true);
-        drawTotal(context, client, BlackjackConfig.getViewerName(), hostAlwaysWins ? "18" : BlackjackScore.display(viewerTotal, viewerHasCards), false);
+        // Keep real item stacks untouched; only the local display is forced to a winning score.
+        // Host Always Wins cannot display a bust and may show 21 when enabled.
+        drawTotal(context, client, BlackjackConfig.getHostName(), hostAlwaysWins ? "21" : hostDisplay(), true);
+        drawTotal(context, client, BlackjackConfig.getViewerName(), hostAlwaysWins ? "LOSE" : BlackjackScore.display(viewerTotal, viewerHasCards), false);
         String status = "HOST ALWAYS WINS: " + (hostAlwaysWins ? "ON" : "OFF");
         int statusColor = hostAlwaysWins ? 0xFF55FF55 : 0xFFFF5555;
         context.drawText(client.textRenderer, status,
