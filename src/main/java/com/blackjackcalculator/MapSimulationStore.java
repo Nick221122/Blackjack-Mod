@@ -79,13 +79,7 @@ public final class MapSimulationStore {
                         image.setRGB(x, y, 0x00000000);
                         continue;
                     }
-                    int colorIndex = value >>> 2;
-                    int brightness = value & 3;
-                    if (colorIndex >= MapColor.COLORS.length || MapColor.COLORS[colorIndex] == null) {
-                        image.setRGB(x, y, 0x00000000);
-                    } else {
-                        image.setRGB(x, y, 0xFF000000 | (MapColor.COLORS[colorIndex].getRenderColor(brightness) & 0xFFFFFF));
-                    }
+                    image.setRGB(x, y, 0xFF000000 | (MapColor.getRenderColor(value) & 0xFFFFFF));
                 }
             }
             ImageIO.write(image, "png", directory.resolve("map-" + mapId + ".png").toFile());
