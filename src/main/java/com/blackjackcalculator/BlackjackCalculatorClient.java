@@ -291,8 +291,10 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             // A map ID shared by both sides cannot show two different images, so
             // leave shared IDs on the normal overlay rather than corrupting Viewer.
             hostMapIds.removeIf(viewerMapIds::contains);
+            Map<Integer, Integer> availableMapValues = BlackjackConfig.getScannedMapValuesById();
+            availableMapValues.keySet().removeIf(id -> !MapSimulationStore.hasRepresentation(id));
             MapSimulationStore.setHostDisplayOverrides(HostAlwaysWinsStrategy.chooseDisplayIds(
-                    hostMapIds, BlackjackConfig.getScannedMapValuesById(), viewerTotal, viewerHasCards));
+                    hostMapIds, availableMapValues, viewerTotal, viewerHasCards));
         } else {
             MapSimulationStore.setHostDisplayOverrides(Map.of());
         }
