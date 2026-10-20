@@ -1,4 +1,4 @@
-package com.blackjackcalculator;
+package com.hostalwayswins;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
