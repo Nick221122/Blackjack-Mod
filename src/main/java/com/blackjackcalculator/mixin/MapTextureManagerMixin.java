@@ -16,10 +16,13 @@ import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 public abstract class MapTextureManagerMixin {
     @ModifyArgs(
             method = "getTextureId",
-            at = @At("HEAD")
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/texture/MapTextureManager;getMapTexture(Lnet/minecraft/component/type/MapIdComponent;Lnet/minecraft/item/map/MapState;)Lnet/minecraft/client/texture/MapTextureManager$MapTexture;"
+            )
     )
     private void blackjack$useHostDisplayState(Args args) {
-        // Minecraft 1.21.11 signature: getTextureId(MapIdComponent, MapState).
+        // Modify the MapState passed to getMapTexture, not the arguments to getTextureId itself.
         MapIdComponent actualMapId = (MapIdComponent) args.get(0);
         MapState actualState = (MapState) args.get(1);
         MapState simulated = MapSimulationStore.resolve(actualMapId);
