@@ -1,4 +1,4 @@
-package com.blackjackcalculator;
+package com.hostalwayswins;
 
 import net.fabricmc.api.ClientModInitializer;
 import org.junit.jupiter.api.Test;
