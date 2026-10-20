@@ -2,6 +2,7 @@ name: Build Blackjack Calculator
 
 on:
   push:
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -19,7 +20,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '9.2.1'
-      - name: Build mod
+      - name: Build mod and run tests
         run: gradle clean build --no-daemon --stacktrace
       - name: Verify production JAR
         run: test -f build/libs/blackjack-calculator-1.21.11.jar
