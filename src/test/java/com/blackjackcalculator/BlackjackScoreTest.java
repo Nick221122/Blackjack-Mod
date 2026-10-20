@@ -27,6 +27,14 @@ class BlackjackScoreTest {
     }
 
     @Test
+    void viewerScoreRemainsNumericInsteadOfLoseInWinningMode() {
+        assertEquals("11", BlackjackScore.displayViewerWhenHostAlwaysWins(11, true));
+        assertEquals("18", BlackjackScore.displayViewerWhenHostAlwaysWins(18, true));
+        assertEquals("BUST", BlackjackScore.displayViewerWhenHostAlwaysWins(22, true));
+        assertEquals("-", BlackjackScore.displayViewerWhenHostAlwaysWins(0, false));
+    }
+
+    @Test
     void hostDisplayNeverShowsBust() {
         assertEquals("21", BlackjackScore.displayHost(22, true));
         assertEquals("21", BlackjackScore.displayHost(30, true));
