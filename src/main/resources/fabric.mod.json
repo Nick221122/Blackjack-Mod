@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "blackjackcalculator",
+  "id": "hostalwayswins",
   "version": "${version}",
-  "name": "Blackjack Item Frame Calculator",
+  "name": "Host Always Wins — Client Map Overlay",
   "description": "Client-side blackjack calculator with local Host Always Wins map simulation.",
   "authors": [
     "OpenAI"
@@ -11,8 +11,8 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "com.blackjackcalculator.BlackjackCalculatorClient",
-      "com.blackjackcalculator.SelectionHighlightRenderer"
+      "com.hostalwayswins.BlackjackCalculatorClient",
+      "com.hostalwayswins.SelectionHighlightRenderer"
     ]
   },
   "mixins": [
