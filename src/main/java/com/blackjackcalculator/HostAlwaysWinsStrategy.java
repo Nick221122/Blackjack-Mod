@@ -130,4 +130,68 @@ public final class HostAlwaysWinsStrategy {
         }
         return unchanged;
     }
+    /**
+     * Chooses a safe fake face for a newly placed Host card while preserving
+     * every face already locked for the current hand.
+     */
+    public static Integer chooseDisplayIdForAdditionalCard(
+            List<Integer> currentDisplayIds,
+            int newActualId,
+            Set<Integer> viewerMapIds,
+            Map<Integer, Integer> availableMapValues,
+            int viewerTotal,
+            boolean viewerHasCards,
+            long seed) {
+        if (currentDisplayIds == null || availableMapValues == null || availableMapValues.isEmpty()) {
+            return null;
+        }
+        Set<Integer> viewerIds = viewerMapIds == null ? Set.of() : new LinkedHashSet<>(viewerMapIds);
+        int fixed = 0;
+        int aces = 0;
+        for (int id : currentDisplayIds) {
+            Integer value = availableMapValues.get(id);
+            if (value == null || value < 1 || value > 11) return null;
+            if (value == 11) aces++;
+            else fixed += value;
+        }
+
+        List<Integer> candidates = new ArrayList<>();
+        for (Map.Entry<Integer, Integer> entry : availableMapValues.entrySet()) {
+            if (entry.getValue() >= 1 && entry.getValue() <= 11
+                    && !viewerIds.contains(entry.getKey()) && entry.getKey() != newActualId) {
+                candidates.add(entry.getKey());
+            }
+        }
+        if (candidates.isEmpty()) return null;
+        Collections.shuffle(candidates, new Random(seed));
+
+        List<Integer> winning = new ArrayList<>();
+        List<Integer> nonBust = new ArrayList<>();
+        int bestTotal = -1;
+        List<Integer> best = new ArrayList<>();
+        for (int id : candidates) {
+            int value = availableMapValues.get(id);
+            int total = value == 11
+                    ? BlackjackScore.score(fixed, aces + 1)
+                    : BlackjackScore.score(fixed + value, aces);
+            if (total > 21) continue;
+            nonBust.add(id);
+            if (total > bestTotal) {
+                bestTotal = total;
+                best.clear();
+            }
+            if (total == bestTotal) best.add(id);
+
+            boolean beatsViewer = !viewerHasCards || viewerTotal > 21
+                    || (viewerTotal < 21 && total > viewerTotal)
+                    || (viewerTotal == 21 && total == 21);
+            int targetMinimum = viewerHasCards && viewerTotal >= 17 && viewerTotal < 21
+                    ? (viewerTotal >= 20 ? 21 : viewerTotal + 1) : 17;
+            if (beatsViewer && total >= targetMinimum) winning.add(id);
+        }
+        List<Integer> choices = !winning.isEmpty() ? winning : !best.isEmpty() ? best : nonBust;
+        if (choices.isEmpty()) return null;
+        return choices.get(new Random(seed ^ 0xD1B54A32D192ED03L).nextInt(choices.size()));
+    }
+
 }
