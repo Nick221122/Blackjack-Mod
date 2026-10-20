@@ -1,4 +1,4 @@
-package com.blackjackcalculator;
+package com.hostalwayswins;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.Click;
