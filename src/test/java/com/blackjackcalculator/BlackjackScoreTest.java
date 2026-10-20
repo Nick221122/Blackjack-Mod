@@ -42,23 +42,12 @@ class BlackjackScoreTest {
     }
 
     @Test
-    void oneAndTwoHostCardsDoNotInstantlyJumpToTwentyOne() {
-        for (int roll = 0; roll < 100; roll++) {
-            assertTrue(BlackjackScore.hostAlwaysWinsTotal(18, true, 1, roll) >= 2);
-            assertTrue(BlackjackScore.hostAlwaysWinsTotal(18, true, 1, roll) <= 11);
-            assertTrue(BlackjackScore.hostAlwaysWinsTotal(18, true, 2, roll) >= 12);
-            assertTrue(BlackjackScore.hostAlwaysWinsTotal(18, true, 2, roll) <= 17);
-        }
-    }
-
-    @Test
-    void threeOrMoreHostCardsRandomizeAWinningSafeScore() {
-        for (int roll = 0; roll < 100; roll++) {
-            int against18 = BlackjackScore.hostAlwaysWinsTotal(18, true, 3, roll);
-            assertTrue(against18 >= 19 && against18 <= 21);
-            int against17 = BlackjackScore.hostAlwaysWinsTotal(17, true, 3, roll);
-            assertTrue(against17 >= 18 && against17 <= 21);
-            int againstBust = BlackjackScore.hostAlwaysWinsTotal(25, true, 3, roll);
+    void hostAlwaysWinsAlwaysShowsAWinningOrBestPossibleSafeTotalRegardlessOfCardCount() {
+        for (int count = 1; count <= 9; count++) {
+            assertEquals(21, BlackjackScore.hostAlwaysWinsTotal(20, true, count, count));
+            assertEquals(21, BlackjackScore.hostAlwaysWinsTotal(21, true, count, count));
+            assertTrue(BlackjackScore.hostAlwaysWinsTotal(18, true, count, count) > 18);
+            int againstBust = BlackjackScore.hostAlwaysWinsTotal(25, true, count, count);
             assertTrue(againstBust >= 17 && againstBust <= 21);
         }
     }
