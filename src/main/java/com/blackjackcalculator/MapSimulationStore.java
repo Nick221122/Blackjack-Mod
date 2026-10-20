@@ -25,6 +25,7 @@ import java.util.Map;
  */
 public final class MapSimulationStore {
     private static final Map<Integer, MapState> REPRESENTATIONS = new LinkedHashMap<>();
+    private static final Map<Integer, Integer> HOST_DISPLAY_OVERRIDES = new LinkedHashMap<>();
     private static boolean enabled;
 
     private MapSimulationStore() {}
@@ -43,6 +44,18 @@ public final class MapSimulationStore {
 
     public static void clear() {
         REPRESENTATIONS.clear();
+        HOST_DISPLAY_OVERRIDES.clear();
+    }
+
+    public static void setHostDisplayOverrides(Map<Integer, Integer> overrides) {
+        HOST_DISPLAY_OVERRIDES.clear();
+        if (overrides != null) {
+            overrides.forEach((actualId, displayId) -> {
+                if (REPRESENTATIONS.containsKey(actualId) && REPRESENTATIONS.containsKey(displayId)) {
+                    HOST_DISPLAY_OVERRIDES.put(actualId, displayId);
+                }
+            });
+        }
     }
 
     /**
@@ -50,6 +63,12 @@ public final class MapSimulationStore {
      * Unscanned map IDs are deliberately left untouched.
      */
     public static Integer displayMapId(int actualMapId) {
+        if (!enabled || REPRESENTATIONS.isEmpty()) return null;
+        Integer hostOverride = HOST_DISPLAY_OVERRIDES.get(actualMapId);
+        return hostOverride != null ? hostOverride : defaultDisplayMapId(actualMapId);
+    }
+
+    public static Integer defaultDisplayMapId(int actualMapId) {
         if (!enabled || REPRESENTATIONS.isEmpty()) return null;
         return MapSimulationSelection.selectDisplayId(actualMapId, List.copyOf(REPRESENTATIONS.keySet()));
     }
