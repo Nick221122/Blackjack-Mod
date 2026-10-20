@@ -29,6 +29,9 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.UUID;
 
 public final class BlackjackCalculatorClient implements ClientModInitializer {
@@ -45,6 +48,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static boolean hostHasCards, viewerHasCards;
     private static boolean hostAlwaysWins;
     private static boolean hostAlwaysWinsKeyDown;
+    private static Map<Integer, Integer> lastAppliedDisplayIds = Map.of();
 
     @Override
     public void onInitializeClient() {
@@ -299,10 +303,9 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             }
             displayIds = HostAlwaysWinsStrategy.chooseDisplayIds(
                     hostMapIds, viewerMapIds, availableMapValues, viewerTotal, foundViewer, seed);
-            MapSimulationStore.setHostDisplayOverrides(displayIds);
-        } else {
-            MapSimulationStore.setHostDisplayOverrides(Map.of());
         }
+        MapSimulationStore.setHostDisplayOverrides(displayIds);
+        refreshChangedHostTextures(client, displayIds);
 
         int hostFixed = 0, hostAces = 0;
         for (int actualId : hostMapIds) {
@@ -315,6 +318,37 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         }
         hostHasCards = foundHost;
         hostTotal = BlackjackScore.score(hostFixed, hostAces);
+    }
+
+    /**
+     * Explicitly refreshes map textures whenever the local fake-map assignment changes.
+     * This avoids relying on a cached texture to notice that the Host display state changed.
+     */
+    private static void refreshChangedHostTextures(MinecraftClient client, Map<Integer, Integer> nextDisplayIds) {
+        if (client.world == null) {
+            lastAppliedDisplayIds = Map.copyOf(nextDisplayIds);
+            return;
+        }
+
+        Set<Integer> affectedIds = new LinkedHashSet<>(lastAppliedDisplayIds.keySet());
+        affectedIds.addAll(nextDisplayIds.keySet());
+        for (int actualId : affectedIds) {
+            if (Objects.equals(lastAppliedDisplayIds.get(actualId), nextDisplayIds.get(actualId))) continue;
+
+            MapIdComponent actualMapId = new MapIdComponent(actualId);
+            int displayId = nextDisplayIds.getOrDefault(actualId, actualId);
+            net.minecraft.item.map.MapState displayState = MapSimulationStore.representation(displayId);
+            if (displayState == null) {
+                displayState = client.world.getMapState(new MapIdComponent(displayId));
+            }
+            if (displayState == null) {
+                displayState = client.world.getMapState(actualMapId);
+            }
+            if (displayState != null) {
+                client.getMapTextureManager().setNeedsUpdate(actualMapId, displayState);
+            }
+        }
+        lastAppliedDisplayIds = Map.copyOf(nextDisplayIds);
     }
 
     private static boolean isFrameInsideSelection(MinecraftClient client, ItemFrameEntity frame, BlackjackConfig.Role role) {
