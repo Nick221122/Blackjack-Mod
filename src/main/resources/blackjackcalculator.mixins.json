@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "com.blackjackcalculator.mixin",
+  "package": "com.hostalwayswins.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "MapTextureManagerMixin"
