@@ -87,6 +87,27 @@ class HostAlwaysWinsStrategyTest {
                 List.of(99), Set.of(), VALUES, 17, true, 7L).isEmpty());
     }
 
+    @Test
+    void newHostCardCanReachSafeWinningTotalAgainstViewerEighteen() {
+        Integer displayId = HostAlwaysWinsStrategy.chooseDisplayIdForAdditionalCard(
+                List.of(8), 2, Set.of(), VALUES, 18, true, 91L);
+
+        assertNotNull(displayId);
+        int total = BlackjackScore.score(VALUES.get(8) + VALUES.get(displayId), 0);
+        assertTrue(total >= 19 && total <= 21,
+                "new card should make the locked Host hand beat 18 without busting");
+    }
+
+    @Test
+    void additionalCardNeverUsesAViewerMapOrItsOwnRealFace() {
+        Integer displayId = HostAlwaysWinsStrategy.chooseDisplayIdForAdditionalCard(
+                List.of(8), 2, Set.of(1), VALUES, 18, true, 92L);
+
+        assertNotNull(displayId);
+        assertNotEquals(2, displayId);
+        assertFalse(Set.of(1).contains(displayId));
+    }
+
     private static int scoreDisplayIds(Map<Integer, Integer> overrides, List<Integer> actualIds,
                                        Map<Integer, Integer> values) {
         int fixed = 0;
