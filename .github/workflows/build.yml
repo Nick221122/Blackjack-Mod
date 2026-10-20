@@ -24,42 +24,27 @@ jobs:
         with:
           gradle-version: '9.2.1'
       - name: Build mod and run tests
-        run: gradle clean test remapJar --no-daemon --stacktrace
-      - name: Find and verify production JAR
-        id: production-jar
+        run: gradle clean build --no-daemon --stacktrace
+      - name: Verify production mod JAR
         shell: bash
         run: |
           set -euo pipefail
+          jar_path="build/libs/blackjack-calculator-1.21.11.jar"
+
           echo "JAR files produced by Gradle:"
           find build/libs -maxdepth 1 -type f -name '*.jar' -print -exec ls -lh {} \;
 
-          production_jar=""
-          while IFS= read -r jar; do
-            case "$jar" in
-              *-sources.jar) continue ;;
-            esac
+          test -f "$jar_path"
+          unzip -t "$jar_path"
+          unzip -p "$jar_path" fabric.mod.json > /tmp/fabric.mod.json
+          grep -q '"id"[[:space:]]*:[[:space:]]*"blackjack-calculator"' /tmp/fabric.mod.json
 
-            manifest="$(unzip -p "$jar" META-INF/MANIFEST.MF 2>/dev/null || true)"
-            if grep -q '^Fabric-Jar-Type: classes' <<< "$manifest"; then
-              echo "Skipping development classes JAR: $jar"
-              continue
-            fi
-
-            production_jar="$jar"
-            break
-          done < <(find build/libs -maxdepth 1 -type f -name '*.jar' | sort)
-
-          if [[ -z "$production_jar" ]]; then
-            echo "No production/remapped mod JAR found. See the JAR listing above." >&2
-            exit 1
-          fi
-
-          echo "Selected production JAR: $production_jar"
-          echo "jar_path=$production_jar" >> "$GITHUB_OUTPUT"
+          echo "Verified mod metadata in $jar_path"
+          cat /tmp/fabric.mod.json
       - name: Upload mod JAR
         uses: actions/upload-artifact@v4
         with:
           name: blackjack-calculator-1.21.11
-          path: ${{ steps.production-jar.outputs.jar_path }}
+          path: build/libs/blackjack-calculator-1.21.11.jar
           if-no-files-found: error
           retention-days: 14
