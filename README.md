@@ -1,31 +1,32 @@
-# Blackjack Item Frame Calculator — Minecraft 1.21.11
+# Host Always Wins — Minecraft 1.21.11
 
-Fabric client-side mod for Minecraft 1.21.11.
+A standalone Fabric **client-side** mod that locally simulates Host card-map visuals for a Minecraft blackjack setup. It does not require a server mod.
 
-## How it works
+## Controls
 
-Cards are simply custom-named items with names `1` through `10`. `1` is the Ace. 10 is a normal card worth 10 points.
+- **L — Capture Maps:** Open the 3×3 dispenser/dropper containing your card maps and press L while looking at that dispenser/dropper. The mod records each map's actual Map ID, the visible map state, and the card value assigned to its slot. It also detects nearby card item frames and assigns the Viewer to the left and Host to the right based on the dispenser's orientation.
+- **R — Host Always Wins:** Toggle the local simulation on or off. When enabled, the Host's displayed map states are overlaid with captured map images chosen to make a legal winning hand when possible. The real item stacks and Map IDs are not rewritten.
+- **P — Edit HUD:** Opens the existing local HUD position editor for the totals.
 
-Host/Viewer is **not encoded in the paper name**. Instead, each item frame is assigned a role locally, so both Host and Viewer papers can come from the **same dispenser**.
+The keybinds can be changed under **Options → Controls → Key Binds → Host Always Wins**.
 
-### Keybinds
+## Card values
 
-All keybinds appear under **Options → Controls → Key Binds → Blackjack Calculator** and can be changed there:
+The dispenser's nine slots assign values in this order: Ace (11), 3, 4, 5, 6, 7, 8, 9, 10. The Ace is scored as 11 when possible and reduced to 1 when needed. Face cards count as 10 when the scanned value table represents them as 10. A hand over 21 is a bust.
 
-- **Toggle Target Frame Host/Viewer** — default `H`. Look at an item frame and press the key. First press assigns Host, second press assigns Viewer, then it alternates. The key can be changed in Minecraft's Key Binds.
-- **Clear Target Frame Role** — default `K`. Look at an item frame and press the key to stop the frame from being counted.
-- **Edit HUD Positions** — default `P`. Opens an editor where Host and Viewer totals can be dragged anywhere on screen.
+## Important limitations
 
-HUD positions and frame roles are saved locally in `blackjackcalculator.json` in the Minecraft game directory.
+- This is a **local visual simulation only**. It does not send winning results to the server and cannot force a server-side blackjack game to award a win.
+- The real Map IDs, item stacks, and server map data are not intentionally modified. Only the locally rendered map-state representation is substituted for selected Host-exclusive maps.
+- Map images are sourced from maps captured during L scanning. If a required representation was not captured, the mod leaves that card unchanged rather than inventing map data.
+- The mixin has compile/CI coverage, but its behavior must still be tested in a live Minecraft 1.21.11 client to confirm texture refresh behavior and ensure the visuals match the intended item frames.
 
-### Blackjack scoring
+## Build
 
-- Normal cards: `2`–`10`.
-- Ace: `1`, scored as 11 when possible and automatically reduced to 1 when 11 would cause a bust.
-- Multiple Aces are handled correctly.
+Use Java 21 and Gradle:
 
-### One-dispenser setup
+```sh
+gradle clean build
+```
 
-You can keep all of your papers in one dispenser. Put any card paper into any frame, then use the Host/Viewer keybind while looking at that frame to assign its role.
-
-The same visible card name can be used on both sides. For example, a paper named `1` can be a Host Ace in one frame and a Viewer Ace in another frame.
+The mod JAR is written to `build/libs/host-always-wins-1.21.11.jar`.
