@@ -42,6 +42,17 @@ class HostAlwaysWinsStrategyTest {
     }
 
     @Test
+    void viewerEighteenMakesHostNineteenThroughTwentyOne() {
+        List<Integer> hostIds = List.of(6, 7);
+        Map<Integer, Integer> overrides = HostAlwaysWinsStrategy.chooseDisplayIds(
+                hostIds, Set.of(), VALUES, 18, true, 43L);
+
+        int total = scoreDisplayIds(overrides, hostIds, VALUES);
+        assertTrue(total >= 19 && total <= 21,
+                "host should randomly reach 19, 20, or 21 without busting");
+    }
+
+    @Test
     void viewerNineteenMakesHostAtLeastTwenty() {
         List<Integer> hostIds = List.of(6, 7);
         Map<Integer, Integer> overrides = HostAlwaysWinsStrategy.chooseDisplayIds(
