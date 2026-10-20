@@ -262,6 +262,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         }
         hostHasCards = foundHost;
         hostCardCount = foundHostCount;
+        if (hostCardCount == 0) cachedHostCardCount = -1;
         viewerHasCards = foundViewer;
         hostTotal = BlackjackScore.score(hostFixed, hostAces);
         viewerTotal = BlackjackScore.score(viewerFixed, viewerAces);
