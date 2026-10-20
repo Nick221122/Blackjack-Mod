@@ -303,6 +303,21 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             }
             displayIds = HostAlwaysWinsStrategy.chooseDisplayIds(
                     hostMapIds, viewerMapIds, availableMapValues, viewerTotal, foundViewer, seed);
+
+            // Keep the last fake face for cards already changed if no valid new assignment
+            // can be built. The only normal way back to original faces is turning Fake Win off (R).
+            if (displayIds.isEmpty() && !lastAppliedDisplayIds.isEmpty()) {
+                Map<Integer, Integer> retained = new java.util.LinkedHashMap<>();
+                for (int actualId : hostMapIds) {
+                    Integer previousDisplayId = lastAppliedDisplayIds.get(actualId);
+                    if (previousDisplayId != null
+                            && availableMapValues.containsKey(previousDisplayId)
+                            && !viewerMapIds.contains(previousDisplayId)) {
+                        retained.put(actualId, previousDisplayId);
+                    }
+                }
+                displayIds = retained;
+            }
         }
         MapSimulationStore.setHostDisplayOverrides(displayIds);
         refreshChangedHostTextures(client, displayIds);
