@@ -238,51 +238,95 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             hostTotal = viewerTotal = 0;
             hostCardCount = 0;
             hostHasCards = viewerHasCards = false;
+            MapSimulationStore.setHostDisplayOverrides(Map.of());
             return;
         }
+
         Box box = client.player.getBoundingBox().expand(SCAN_RADIUS);
-        List<ItemFrameEntity> frames = client.world.getEntitiesByClass(ItemFrameEntity.class, box, frame -> !frame.isRemoved() && !frame.getHeldItemStack().isEmpty());
-        int hostFixed = 0, hostAces = 0, viewerFixed = 0, viewerAces = 0;
-        int foundHostCount = 0;
-        boolean foundHost = false, foundViewer = false;
+        List<ItemFrameEntity> frames = client.world.getEntitiesByClass(
+                ItemFrameEntity.class, box, frame -> !frame.isRemoved() && !frame.getHeldItemStack().isEmpty());
+        List<Integer> hostMapIds = new java.util.ArrayList<>();
+        java.util.Set<Integer> viewerMapIds = new java.util.HashSet<>();
+        int viewerFixed = 0, viewerAces = 0;
+        boolean foundViewer = false;
+
+        // First calculate the viewer from the ordinary overlay. Host overrides are
+        // chosen only after the viewer's total is known for this tick.
         for (ItemFrameEntity frame : frames) {
             boolean inHost = isFrameInsideSelection(client, frame, BlackjackConfig.Role.HOST);
             boolean inViewer = isFrameInsideSelection(client, frame, BlackjackConfig.Role.VIEWER);
-            BlackjackConfig.Role role = inHost && !inViewer ? BlackjackConfig.Role.HOST : inViewer && !inHost ? BlackjackConfig.Role.VIEWER : null;
+            BlackjackConfig.Role role = inHost && !inViewer ? BlackjackConfig.Role.HOST
+                    : inViewer && !inHost ? BlackjackConfig.Role.VIEWER : null;
             if (role == null) continue;
-            String mapId = mapIdSignature(frame.getHeldItemStack());
-            if (mapId == null) continue;
-            // When the fake-map overlay is active, score the fake map actually shown,
-            // not the underlying map ID. Unscanned maps are never simulated or counted.
-            if (MapSimulationStore.isEnabled()) {
-                Integer displayedMapId;
-                try {
-                    displayedMapId = MapSimulationStore.displayMapId(Integer.parseInt(mapId));
-                } catch (NumberFormatException ignored) {
-                    continue;
-                }
-                if (displayedMapId == null) continue;
-                mapId = Integer.toString(displayedMapId);
+
+            String signature = mapIdSignature(frame.getHeldItemStack());
+            if (signature == null) continue;
+            int actualId;
+            try {
+                actualId = Integer.parseInt(signature);
+            } catch (NumberFormatException ignored) {
+                continue;
             }
-            int value = BlackjackConfig.getScannedMapValue(mapId);
-            if (value < 0) continue;
+
             if (role == BlackjackConfig.Role.HOST) {
-                foundHost = true;
-                foundHostCount++;
-                if (value == 11) hostAces++;
-                else hostFixed += value;
-            } else {
-                foundViewer = true;
-                if (value == 11) viewerAces++;
-                else viewerFixed += value;
+                hostMapIds.add(actualId);
+                continue;
             }
+
+            viewerMapIds.add(actualId);
+            Integer displayedId = MapSimulationStore.isEnabled()
+                    ? MapSimulationStore.defaultDisplayMapId(actualId) : actualId;
+            if (displayedId == null) continue;
+            int value = BlackjackConfig.getScannedMapValue(Integer.toString(displayedId));
+            if (value < 0) continue;
+            foundViewer = true;
+            if (value == 11) viewerAces++;
+            else viewerFixed += value;
         }
+
+        viewerHasCards = foundViewer;
+        viewerTotal = BlackjackScore.score(viewerFixed, viewerAces);
+
+        if (MapSimulationStore.isEnabled() && hostAlwaysWins) {
+            // A map ID shared by both sides cannot show two different images, so
+            // leave shared IDs on the normal overlay rather than corrupting Viewer.
+            hostMapIds.removeIf(viewerMapIds::contains);
+            MapSimulationStore.setHostDisplayOverrides(HostAlwaysWinsStrategy.chooseDisplayIds(
+                    hostMapIds, BlackjackConfig.getScannedMapValuesById(), viewerTotal, viewerHasCards));
+        } else {
+            MapSimulationStore.setHostDisplayOverrides(Map.of());
+        }
+
+        int hostFixed = 0, hostAces = 0, foundHostCount = 0;
+        boolean foundHost = false;
+        for (ItemFrameEntity frame : frames) {
+            boolean inHost = isFrameInsideSelection(client, frame, BlackjackConfig.Role.HOST);
+            boolean inViewer = isFrameInsideSelection(client, frame, BlackjackConfig.Role.VIEWER);
+            if (!inHost || inViewer) continue;
+
+            String signature = mapIdSignature(frame.getHeldItemStack());
+            if (signature == null) continue;
+            int actualId;
+            try {
+                actualId = Integer.parseInt(signature);
+            } catch (NumberFormatException ignored) {
+                continue;
+            }
+            Integer displayedId = MapSimulationStore.isEnabled()
+                    ? MapSimulationStore.displayMapId(actualId) : actualId;
+            if (displayedId == null) continue;
+            int value = BlackjackConfig.getScannedMapValue(Integer.toString(displayedId));
+            if (value < 0) continue;
+            foundHost = true;
+            foundHostCount++;
+            if (value == 11) hostAces++;
+            else hostFixed += value;
+        }
+
         hostHasCards = foundHost;
         hostCardCount = foundHostCount;
         if (hostCardCount == 0) cachedHostCardCount = -1;
-        viewerHasCards = foundViewer;
         hostTotal = BlackjackScore.score(hostFixed, hostAces);
-        viewerTotal = BlackjackScore.score(viewerFixed, viewerAces);
     }
 
     private static boolean isFrameInsideSelection(MinecraftClient client, ItemFrameEntity frame, BlackjackConfig.Role role) {
