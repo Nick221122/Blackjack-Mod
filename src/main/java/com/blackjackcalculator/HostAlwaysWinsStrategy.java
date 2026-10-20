@@ -2,7 +2,6 @@ package com.blackjackcalculator;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -26,14 +25,23 @@ public final class HostAlwaysWinsStrategy {
             return result;
         }
 
-        List<Integer> hostIds = new ArrayList<>(new LinkedHashSet<>(actualHostMapIds));
+        // Overrides are keyed by actual map ID, so repeated frames containing
+        // the same map must share a representation. Count their multiplicity
+        // when evaluating totals, otherwise the chosen visuals can bust or
+        // disagree with the score calculated from the frames.
+        Map<Integer, Integer> occurrences = new LinkedHashMap<>();
+        for (int id : actualHostMapIds) {
+            occurrences.merge(id, 1, Integer::sum);
+        }
+        List<Integer> hostIds = new ArrayList<>(occurrences.keySet());
         hostIds.removeIf(id -> !availableMapValues.containsKey(id));
         if (hostIds.isEmpty()) return result;
 
         Map<State, List<Integer>> states = new LinkedHashMap<>();
         states.put(new State(0, 0), List.of());
 
-        for (int ignored : hostIds) {
+        for (int actualId : hostIds) {
+            int count = occurrences.get(actualId);
             Map<State, List<Integer>> next = new LinkedHashMap<>();
             for (Map.Entry<State, List<Integer>> entry : states.entrySet()) {
                 for (Map.Entry<Integer, Integer> option : availableMapValues.entrySet()) {
@@ -41,8 +49,8 @@ public final class HostAlwaysWinsStrategy {
                     if (value < 1 || value > 11) continue;
                     State previous = entry.getKey();
                     State state = value == 11
-                            ? new State(previous.fixedTotal(), previous.aces() + 1)
-                            : new State(previous.fixedTotal() + value, previous.aces());
+                            ? new State(previous.fixedTotal(), previous.aces() + count)
+                            : new State(previous.fixedTotal() + value * count, previous.aces());
                     if (!next.containsKey(state)) {
                         List<Integer> ids = new ArrayList<>(entry.getValue());
                         ids.add(option.getKey());
