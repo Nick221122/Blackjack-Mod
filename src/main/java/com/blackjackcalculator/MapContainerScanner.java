@@ -24,7 +24,7 @@ import java.util.Map;
 final class MapContainerScanner {
     private MapContainerScanner() {}
 
-    private static void scanOpenContainer(MinecraftClient client, Screen screen) {
+    static void scanOpenContainer(MinecraftClient client, Screen screen) {
         if (client.player == null) return;
         if (!(screen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?> handled)) return;
         if (!(handled.getScreenHandler() instanceof net.minecraft.screen.Generic3x3ContainerScreenHandler handler)) {
