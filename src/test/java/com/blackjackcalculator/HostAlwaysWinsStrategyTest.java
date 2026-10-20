@@ -45,7 +45,8 @@ class HostAlwaysWinsStrategyTest {
 
     @Test
     void choicesAreStableForTheSameHandSoVisualsDoNotFlicker() {
-        List<Integer> hostFrames = List.of(101, 102, 103);
+        // Host map IDs must be present in the available map pool.
+        List<Integer> hostFrames = List.of(1, 2, 3);
         Map<Integer, Integer> available = values(1, 3, 2, 6, 3, 8, 4, 9, 5, 10, 6, 11);
 
         Map<Integer, Integer> first = HostAlwaysWinsStrategy.chooseDisplayIds(
