@@ -3,6 +3,7 @@ package com.blackjackcalculator;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BlackjackScoreTest {
     @Test
@@ -33,12 +34,30 @@ class BlackjackScoreTest {
     }
 
     @Test
-    void hostAlwaysWinsSelectsTheNextHigherSafeScore() {
-        assertEquals(19, BlackjackScore.hostAlwaysWinsTotal(18, true));
-        assertEquals(20, BlackjackScore.hostAlwaysWinsTotal(19, true));
-        assertEquals(21, BlackjackScore.hostAlwaysWinsTotal(20, true));
-        assertEquals(21, BlackjackScore.hostAlwaysWinsTotal(21, true));
-        assertEquals(21, BlackjackScore.hostAlwaysWinsTotal(25, true));
-        assertEquals(21, BlackjackScore.hostAlwaysWinsTotal(0, false));
+    void oneAndTwoHostCardsDoNotInstantlyJumpToTwentyOne() {
+        for (int roll = 0; roll < 100; roll++) {
+            assertTrue(BlackjackScore.hostAlwaysWinsTotal(18, true, 1, roll) >= 2);
+            assertTrue(BlackjackScore.hostAlwaysWinsTotal(18, true, 1, roll) <= 11);
+            assertTrue(BlackjackScore.hostAlwaysWinsTotal(18, true, 2, roll) >= 12);
+            assertTrue(BlackjackScore.hostAlwaysWinsTotal(18, true, 2, roll) <= 17);
+        }
+    }
+
+    @Test
+    void threeOrMoreHostCardsRandomizeAWinningSafeScore() {
+        for (int roll = 0; roll < 100; roll++) {
+            int against18 = BlackjackScore.hostAlwaysWinsTotal(18, true, 3, roll);
+            assertTrue(against18 >= 19 && against18 <= 21);
+            int against17 = BlackjackScore.hostAlwaysWinsTotal(17, true, 3, roll);
+            assertTrue(against17 >= 18 && against17 <= 21);
+            int againstBust = BlackjackScore.hostAlwaysWinsTotal(25, true, 3, roll);
+            assertTrue(againstBust >= 17 && againstBust <= 21);
+        }
+    }
+
+    @Test
+    void noHostCardsMeansNoScoreAndNoHostBust() {
+        assertEquals(0, BlackjackScore.hostAlwaysWinsTotal(18, true, 0, 0));
+        assertTrue(BlackjackScore.hostAlwaysWinsTotal(18, true, 3, 99) <= 21);
     }
 }
