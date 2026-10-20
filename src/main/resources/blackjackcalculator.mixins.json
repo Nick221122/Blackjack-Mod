@@ -6,7 +6,8 @@
   "client": [
     "MapRendererMixin",
     "HeartTypeAccessor",
-    "InGameHudMixin"
+    "InGameHudMixin",
+    "MapTextureManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
