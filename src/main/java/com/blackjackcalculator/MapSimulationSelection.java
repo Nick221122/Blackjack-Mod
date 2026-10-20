@@ -8,7 +8,10 @@ public final class MapSimulationSelection {
     public static Integer selectDisplayId(int actualMapId, List<Integer> knownMapIds) {
         if (knownMapIds == null || knownMapIds.isEmpty()) return null;
         int index = knownMapIds.indexOf(actualMapId);
-        if (index < 0 || knownMapIds.size() == 1) return knownMapIds.get(0);
+        // Never substitute unscanned maps: only maps explicitly captured by the scan
+        // are eligible for the fake-map overlay.
+        if (index < 0) return null;
+        if (knownMapIds.size() == 1) return knownMapIds.get(0);
         return knownMapIds.get((index + 1) % knownMapIds.size());
     }
 }

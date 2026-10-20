@@ -39,8 +39,15 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static KeyBinding editHudKey;
     private static KeyBinding scanContainerKey;
     private static int hostTotal, viewerTotal;
+    private static int hostCardCount;
+    private static int cachedWinningHostScore;
+    private static int cachedHostCardCount = -1;
+    private static int cachedViewerTotal = Integer.MIN_VALUE;
+    private static boolean cachedViewerHasCards;
     private static boolean hostHasCards, viewerHasCards;
     private static boolean mapSimulationKeyDown;
+    private static boolean hostAlwaysWinsKeyDown;
+    private static boolean hostAlwaysWins;
 
     @Override
     public void onInitializeClient() {
@@ -154,17 +161,33 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     static String mapIdSignature(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return null;
         MapIdComponent mapId = stack.get(DataComponentTypes.MAP_ID);
-        return mapId == null ? null : mapId.toString();
+        return mapIdSignature(mapId);
+    }
+
+    static String mapIdSignature(MapIdComponent mapId) {
+        // Use the stable numeric map ID for both the dispenser scan and frame lookup.
+        return mapId == null ? null : Integer.toString(mapId.id());
     }
 
     private static void onClientTick(MinecraftClient client) {
         while (editHudKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new BlackjackHudEditorScreen());
         boolean rPressed = GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
-        if (isNewMapSimulationKeyPress(rPressed, mapSimulationKeyDown)
+        if (isNewMapSimulationKeyPress(rPressed, hostAlwaysWinsKeyDown)) {
+            hostAlwaysWins = !hostAlwaysWins;
+            // Keep the map-image overlay synchronized with Host Always Wins.
+            MapSimulationStore.setEnabled(hostAlwaysWins);
+            if (client.player != null) {
+                client.player.sendMessage(Text.literal("Host Always Wins: " + (hostAlwaysWins ? "ON" : "OFF")), true);
+            }
+        }
+        hostAlwaysWinsKeyDown = rPressed;
+
+        boolean mPressed = GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_M) == GLFW.GLFW_PRESS;
+        if (isNewMapSimulationKeyPress(mPressed, mapSimulationKeyDown)
                 && !isMapSimulationToggleBlocked(client)) {
             toggleMapSimulation(client);
         }
-        mapSimulationKeyDown = rPressed;
+        mapSimulationKeyDown = mPressed;
         updateTotals(client);
     }
 
@@ -213,36 +236,99 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void updateTotals(MinecraftClient client) {
         if (client.player == null || client.world == null) {
             hostTotal = viewerTotal = 0;
+            hostCardCount = 0;
             hostHasCards = viewerHasCards = false;
+            MapSimulationStore.setHostDisplayOverrides(Map.of());
             return;
         }
+
         Box box = client.player.getBoundingBox().expand(SCAN_RADIUS);
-        List<ItemFrameEntity> frames = client.world.getEntitiesByClass(ItemFrameEntity.class, box, frame -> !frame.isRemoved() && !frame.getHeldItemStack().isEmpty());
-        int hostFixed = 0, hostAces = 0, viewerFixed = 0, viewerAces = 0;
-        boolean foundHost = false, foundViewer = false;
+        List<ItemFrameEntity> frames = client.world.getEntitiesByClass(
+                ItemFrameEntity.class, box, frame -> !frame.isRemoved() && !frame.getHeldItemStack().isEmpty());
+        List<Integer> hostMapIds = new java.util.ArrayList<>();
+        java.util.Set<Integer> viewerMapIds = new java.util.HashSet<>();
+        int viewerFixed = 0, viewerAces = 0;
+        boolean foundViewer = false;
+
+        // First calculate the viewer from the ordinary overlay. Host overrides are
+        // chosen only after the viewer's total is known for this tick.
         for (ItemFrameEntity frame : frames) {
             boolean inHost = isFrameInsideSelection(client, frame, BlackjackConfig.Role.HOST);
             boolean inViewer = isFrameInsideSelection(client, frame, BlackjackConfig.Role.VIEWER);
-            BlackjackConfig.Role role = inHost && !inViewer ? BlackjackConfig.Role.HOST : inViewer && !inHost ? BlackjackConfig.Role.VIEWER : null;
+            BlackjackConfig.Role role = inHost && !inViewer ? BlackjackConfig.Role.HOST
+                    : inViewer && !inHost ? BlackjackConfig.Role.VIEWER : null;
             if (role == null) continue;
-            String mapId = mapIdSignature(frame.getHeldItemStack());
-            if (mapId == null) continue;
-            int value = BlackjackConfig.getScannedMapValue(mapId);
-            if (value < 0) continue;
-            if (role == BlackjackConfig.Role.HOST) {
-                foundHost = true;
-                if (value == 11) hostAces++;
-                else hostFixed += value;
-            } else {
-                foundViewer = true;
-                if (value == 11) viewerAces++;
-                else viewerFixed += value;
+
+            String signature = mapIdSignature(frame.getHeldItemStack());
+            if (signature == null) continue;
+            int actualId;
+            try {
+                actualId = Integer.parseInt(signature);
+            } catch (NumberFormatException ignored) {
+                continue;
             }
+
+            if (role == BlackjackConfig.Role.HOST) {
+                hostMapIds.add(actualId);
+                continue;
+            }
+
+            viewerMapIds.add(actualId);
+            Integer displayedId = MapSimulationStore.isEnabled()
+                    ? MapSimulationStore.defaultDisplayMapId(actualId) : actualId;
+            if (displayedId == null) continue;
+            int value = BlackjackConfig.getScannedMapValue(Integer.toString(displayedId));
+            if (value < 0) continue;
+            foundViewer = true;
+            if (value == 11) viewerAces++;
+            else viewerFixed += value;
         }
-        hostHasCards = foundHost;
+
         viewerHasCards = foundViewer;
-        hostTotal = BlackjackScore.score(hostFixed, hostAces);
         viewerTotal = BlackjackScore.score(viewerFixed, viewerAces);
+
+        if (MapSimulationStore.isEnabled() && hostAlwaysWins) {
+            // A map ID shared by both sides cannot show two different images, so
+            // leave shared IDs on the normal overlay rather than corrupting Viewer.
+            hostMapIds.removeIf(viewerMapIds::contains);
+            Map<Integer, Integer> availableMapValues = BlackjackConfig.getScannedMapValuesById();
+            availableMapValues.keySet().removeIf(id -> !MapSimulationStore.hasRepresentation(id));
+            MapSimulationStore.setHostDisplayOverrides(HostAlwaysWinsStrategy.chooseDisplayIds(
+                    hostMapIds, availableMapValues, viewerTotal, viewerHasCards));
+        } else {
+            MapSimulationStore.setHostDisplayOverrides(Map.of());
+        }
+
+        int hostFixed = 0, hostAces = 0, foundHostCount = 0;
+        boolean foundHost = false;
+        for (ItemFrameEntity frame : frames) {
+            boolean inHost = isFrameInsideSelection(client, frame, BlackjackConfig.Role.HOST);
+            boolean inViewer = isFrameInsideSelection(client, frame, BlackjackConfig.Role.VIEWER);
+            if (!inHost || inViewer) continue;
+
+            String signature = mapIdSignature(frame.getHeldItemStack());
+            if (signature == null) continue;
+            int actualId;
+            try {
+                actualId = Integer.parseInt(signature);
+            } catch (NumberFormatException ignored) {
+                continue;
+            }
+            Integer displayedId = MapSimulationStore.isEnabled()
+                    ? MapSimulationStore.displayMapId(actualId) : actualId;
+            if (displayedId == null) continue;
+            int value = BlackjackConfig.getScannedMapValue(Integer.toString(displayedId));
+            if (value < 0) continue;
+            foundHost = true;
+            foundHostCount++;
+            if (value == 11) hostAces++;
+            else hostFixed += value;
+        }
+
+        hostHasCards = foundHost;
+        hostCardCount = foundHostCount;
+        if (hostCardCount == 0) cachedHostCardCount = -1;
+        hostTotal = BlackjackScore.score(hostFixed, hostAces);
     }
 
     private static boolean isFrameInsideSelection(MinecraftClient client, ItemFrameEntity frame, BlackjackConfig.Role role) {
@@ -274,8 +360,16 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null || client.options.hudHidden) return;
-        drawTotal(context, client, BlackjackConfig.getHostName(), hostDisplay(), true);
-        drawTotal(context, client, BlackjackConfig.getViewerName(), BlackjackScore.display(viewerTotal, viewerHasCards), false);
+        // Show the score calculated from fake map values; never append a fake WIN result.
+        String hostScore = hostDisplay();
+        String viewerScore = BlackjackScore.display(viewerTotal, viewerHasCards);
+        drawTotal(context, client, BlackjackConfig.getHostName(), hostScore, true);
+        drawTotal(context, client, BlackjackConfig.getViewerName(), viewerScore, false);
+        String status = "HOST ALWAYS WINS: " + (hostAlwaysWins ? "ON" : "OFF");
+        int statusColor = hostAlwaysWins ? 0xFF55FF55 : 0xFFFF5555;
+        context.drawText(client.textRenderer, status,
+                client.getWindow().getScaledWidth() - client.textRenderer.getWidth(status) - 8,
+                8, statusColor, true);
     }
 
     private static void drawTotal(DrawContext context, MinecraftClient client, String name, String score, boolean host) {
@@ -307,4 +401,5 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     public static int getViewerTotal() { return viewerTotal; }
     public static boolean hasHostCards() { return hostHasCards; }
     public static boolean hasViewerCards() { return viewerHasCards; }
+    public static boolean isHostAlwaysWinsEnabled() { return hostAlwaysWins; }
 }
