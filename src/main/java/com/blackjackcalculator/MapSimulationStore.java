@@ -45,9 +45,18 @@ public final class MapSimulationStore {
         REPRESENTATIONS.clear();
     }
 
+    /**
+     * Returns the scanned map ID whose fake visual/value is shown for this scanned map.
+     * Unscanned map IDs are deliberately left untouched.
+     */
+    public static Integer displayMapId(int actualMapId) {
+        if (!enabled || REPRESENTATIONS.isEmpty()) return null;
+        return MapSimulationSelection.selectDisplayId(actualMapId, List.copyOf(REPRESENTATIONS.keySet()));
+    }
+
     public static MapState resolve(MapIdComponent actualMapId) {
-        if (!enabled || actualMapId == null || REPRESENTATIONS.isEmpty()) return null;
-        Integer displayId = MapSimulationSelection.selectDisplayId(actualMapId.id(), List.copyOf(REPRESENTATIONS.keySet()));
+        if (actualMapId == null) return null;
+        Integer displayId = displayMapId(actualMapId.id());
         return displayId == null ? null : REPRESENTATIONS.get(displayId);
     }
 
