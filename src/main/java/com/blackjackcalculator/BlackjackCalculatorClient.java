@@ -308,6 +308,24 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
             fakeWinRecalculateRequested = false;
         }
         if (hostAlwaysWins && !lockedHostDisplayIds.isEmpty()) {
+            // Keep every already-faked face locked, but safely assign a face to a
+            // newly placed Host card so its real value cannot unexpectedly bust the hand.
+            Map<Integer, Integer> expandedLock = new java.util.LinkedHashMap<>(lockedHostDisplayIds);
+            for (int actualId : hostMapIds) {
+                if (expandedLock.containsKey(actualId) || viewerMapIds.contains(actualId)
+                        || !availableMapValues.containsKey(actualId)) continue;
+                List<Integer> currentDisplayIds = new java.util.ArrayList<>();
+                for (int otherId : hostMapIds) {
+                    if (otherId == actualId) continue;
+                    currentDisplayIds.add(expandedLock.getOrDefault(otherId, otherId));
+                }
+                Integer displayId = HostAlwaysWinsStrategy.chooseDisplayIdForAdditionalCard(
+                        currentDisplayIds, actualId, viewerMapIds, availableMapValues,
+                        viewerTotal, foundViewer, System.nanoTime() ^ (long) actualId);
+                if (displayId != null) expandedLock.put(actualId, displayId);
+            }
+            lockedHostDisplayIds = Map.copyOf(expandedLock);
+
             Map<Integer, Integer> lockedForCurrentHand = new java.util.LinkedHashMap<>();
             for (int actualId : hostMapIds) {
                 Integer displayId = lockedHostDisplayIds.get(actualId);
