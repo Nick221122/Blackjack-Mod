@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class BlackjackCalculatorClient implements ClientModInitializer {
-    private static final String MOD_ID = "blackjackcalculator";
+    private static final String MOD_ID = "hostalwayswins";
     private static final Identifier HUD_ID = Identifier.of(MOD_ID, "totals");
     private static final double SCAN_RADIUS = 256.0D;
     private static final double SELECTION_RAY_DISTANCE = 256.0D;
@@ -51,8 +51,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         MinecraftClient client = MinecraftClient.getInstance();
         BlackjackConfig.load(client);
         KeyBinding.Category category = KeyBinding.Category.create(Identifier.of(MOD_ID, "controls"));
-        editHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.edit_hud", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_P, category));
-        scanContainerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.blackjackcalculator.scan_container", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_L, category));
+        editHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.hostalwayswins.edit_hud", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_P, category));
+        scanContainerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.hostalwayswins.scan_container", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_L, category));
         ClientTickEvents.END_CLIENT_TICK.register(BlackjackCalculatorClient::onClientTick);
         ScreenEvents.BEFORE_INIT.register((client1, screen, scaledWidth, scaledHeight) -> {
             ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, context) -> {
