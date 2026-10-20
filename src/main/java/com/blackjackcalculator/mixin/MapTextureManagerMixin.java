@@ -5,19 +5,26 @@ import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.item.map.MapState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.ModifyArgs;
+import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
-/** Substitutes only the local texture source; the ItemStack's real Map ID is unchanged. */
+/**
+ * Substitutes only the local map texture's state argument.
+ * The real MapIdComponent and the ItemStack are never changed.
+ */
 @Mixin(targets = "net.minecraft.client.texture.MapTextureManager")
 public abstract class MapTextureManagerMixin {
-    @ModifyVariable(
+    @ModifyArgs(
             method = "getTextureId",
-            at = @At("HEAD"),
-            argsOnly = true,
-            ordinal = 0
+            at = @At("HEAD")
     )
-    private MapState blackjack$useHostDisplayState(MapState actualState, MapIdComponent mapId) {
-        MapState simulated = MapSimulationStore.resolve(mapId);
-        return simulated != null ? simulated : actualState;
+    private void blackjack$useHostDisplayState(Args args) {
+        // Minecraft 1.21.11 signature: getTextureId(MapIdComponent, MapState).
+        MapIdComponent actualMapId = (MapIdComponent) args.get(0);
+        MapState actualState = (MapState) args.get(1);
+        MapState simulated = MapSimulationStore.resolve(actualMapId);
+        if (simulated != null && simulated != actualState) {
+            args.set(1, simulated);
+        }
     }
 }
