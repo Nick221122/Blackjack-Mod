@@ -24,6 +24,34 @@ class HostAlwaysWinsStrategyTest {
     }
 
     @Test
+    void viewerTwentyMakesHostExactlyTwentyOne() {
+        List<Integer> hostIds = List.of(6, 7);
+        Map<Integer, Integer> overrides = HostAlwaysWinsStrategy.chooseDisplayIds(
+                hostIds, Set.of(), VALUES, 20, true, 42L);
+
+        assertEquals(21, scoreDisplayIds(overrides, hostIds, VALUES));
+    }
+
+    @Test
+    void viewerTwentyOneMakesHostTieAtTwentyOne() {
+        List<Integer> hostIds = List.of(6, 7);
+        Map<Integer, Integer> overrides = HostAlwaysWinsStrategy.chooseDisplayIds(
+                hostIds, Set.of(), VALUES, 21, true, 42L);
+
+        assertEquals(21, scoreDisplayIds(overrides, hostIds, VALUES));
+    }
+
+    @Test
+    void viewerNineteenMakesHostAtLeastTwenty() {
+        List<Integer> hostIds = List.of(6, 7);
+        Map<Integer, Integer> overrides = HostAlwaysWinsStrategy.chooseDisplayIds(
+                hostIds, Set.of(), VALUES, 19, true, 42L);
+
+        int total = scoreDisplayIds(overrides, hostIds, VALUES);
+        assertTrue(total >= 20 && total <= 21);
+    }
+
+    @Test
     void neverChangesMapIdsSharedWithViewer() {
         Map<Integer, Integer> overrides = HostAlwaysWinsStrategy.chooseDisplayIds(
                 List.of(1, 2), Set.of(1), VALUES, 17, true, 7L);
