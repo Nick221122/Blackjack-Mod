@@ -3,7 +3,7 @@
   "id": "blackjackcalculator",
   "version": "${version}",
   "name": "Blackjack Item Frame Calculator",
-  "description": "Client-side blackjack calculator that reads numbered cards from nearby item frames.",
+  "description": "Client-side blackjack calculator with local Host Always Wins map simulation.",
   "authors": [
     "OpenAI"
   ],
@@ -15,6 +15,9 @@
       "com.blackjackcalculator.SelectionHighlightRenderer"
     ]
   },
+  "mixins": [
+    "blackjackcalculator.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.19.2",
     "minecraft": "1.21.11",
