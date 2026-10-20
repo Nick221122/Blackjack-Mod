@@ -132,11 +132,7 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
         boolean rPressed = GLFW.glfwGetKey(client.getWindow().getHandle(), GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
         if (rPressed && !hostAlwaysWinsKeyDown) {
-            hostAlwaysWins = !hostAlwaysWins;
-            MapSimulationStore.setEnabled(hostAlwaysWins);
-            if (client.player != null) {
-                client.player.sendMessage(Text.literal("Host Always Wins: " + (hostAlwaysWins ? "ON" : "OFF")), true);
-            }
+            setHostAlwaysWinsEnabled(client, !hostAlwaysWins);
         }
         hostAlwaysWinsKeyDown = rPressed;
         updateTotals(client);
@@ -419,6 +415,15 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         return Math.max(0, configuredX);
     }
 
+    public static void setHostAlwaysWinsEnabled(MinecraftClient client, boolean enabled) {
+        hostAlwaysWins = enabled;
+        MapSimulationStore.setEnabled(enabled);
+        if (client != null && client.player != null) {
+            client.player.sendMessage(Text.literal("Host Always Wins: " + (enabled ? "ON" : "OFF")), true);
+        }
+    }
+
+    public static boolean isHostAlwaysWinsEnabled() { return hostAlwaysWins; }
     public static int getHostTotal() { return hostTotal; }
     public static int getViewerTotal() { return viewerTotal; }
     public static boolean hasHostCards() { return hostHasCards; }
