@@ -20,8 +20,8 @@ public final class BlackjackScore {
     }
 
     public static String displayHost(int total, boolean hasCards) {
-        if (!hasCards) return "-";
-        return Integer.toString(Math.min(total, 21));
+        // HUD totals must reflect the actual fake-map values, including a bust.
+        return display(total, hasCards);
     }
 
     /** Keeps the viewer's visible score numeric while Host Always Wins is enabled. */
