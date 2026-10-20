@@ -48,6 +48,8 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
     private static boolean hostHasCards, viewerHasCards;
     private static boolean hostAlwaysWins;
     private static boolean hostAlwaysWinsKeyDown;
+    private static boolean fakeWinRecalculateRequested;
+    private static Map<Integer, Integer> lockedHostDisplayIds = Map.of();
     private static Map<Integer, Integer> lastAppliedDisplayIds = Map.of();
 
     @Override
@@ -289,7 +291,9 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
         viewerHasCards = foundViewer;
         viewerTotal = BlackjackScore.score(viewerFixed, viewerAces);
         Map<Integer, Integer> displayIds = Map.of();
-        if (hostAlwaysWins && foundHost && !availableMapValues.isEmpty()) {
+        if (hostAlwaysWins && fakeWinRecalculateRequested && foundHost && !availableMapValues.isEmpty()) {
+            // Calculate the fake faces only in direct response to pressing R to enable Fake Win.
+            // After this snapshot is made, card placement and Viewer score updates cannot alter it.
             long seed = 0x9E3779B97F4A7C15L ^ viewerTotal;
             for (int id : hostMapIds) {
                 seed = Long.rotateLeft(seed ^ id, 13) * 0xBF58476D1CE4E5B9L;
@@ -298,23 +302,20 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
                 seed = Long.rotateLeft(seed ^ entry.getKey(), 7) * 0x94D049BB133111EBL;
                 seed ^= entry.getValue();
             }
-            displayIds = HostAlwaysWinsStrategy.chooseDisplayIds(
+            lockedHostDisplayIds = HostAlwaysWinsStrategy.chooseDisplayIds(
                     hostMapIds, viewerMapIds, availableMapValues, viewerTotal, foundViewer, seed);
-
-            // Keep the last fake face for cards already changed if no valid new assignment
-            // can be built. The only normal way back to original faces is turning Fake Win off (R).
-            if (displayIds.isEmpty() && !lastAppliedDisplayIds.isEmpty()) {
-                Map<Integer, Integer> retained = new java.util.LinkedHashMap<>();
-                for (int actualId : hostMapIds) {
-                    Integer previousDisplayId = lastAppliedDisplayIds.get(actualId);
-                    if (previousDisplayId != null
-                            && availableMapValues.containsKey(previousDisplayId)
-                            && !viewerMapIds.contains(previousDisplayId)) {
-                        retained.put(actualId, previousDisplayId);
-                    }
+            fakeWinRecalculateRequested = false;
+        }
+        if (hostAlwaysWins && !lockedHostDisplayIds.isEmpty()) {
+            Map<Integer, Integer> lockedForCurrentHand = new java.util.LinkedHashMap<>();
+            for (int actualId : hostMapIds) {
+                Integer displayId = lockedHostDisplayIds.get(actualId);
+                if (displayId != null && availableMapValues.containsKey(displayId)
+                        && !viewerMapIds.contains(displayId)) {
+                    lockedForCurrentHand.put(actualId, displayId);
                 }
-                displayIds = retained;
             }
+            displayIds = lockedForCurrentHand;
         }
         MapSimulationStore.setHostDisplayOverrides(displayIds);
         refreshChangedHostTextures(client, displayIds);
@@ -418,6 +419,12 @@ public final class BlackjackCalculatorClient implements ClientModInitializer {
 
     public static void setHostAlwaysWinsEnabled(MinecraftClient client, boolean enabled) {
         hostAlwaysWins = enabled;
+        if (enabled) {
+            fakeWinRecalculateRequested = true;
+        } else {
+            fakeWinRecalculateRequested = false;
+            lockedHostDisplayIds = Map.of();
+        }
         MapSimulationStore.setEnabled(enabled);
         if (client != null && client.player != null) {
             client.player.sendMessage(Text.literal("Host Always Wins: " + (enabled ? "ON" : "OFF")), true);
