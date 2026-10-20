@@ -5,6 +5,13 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.map.MapState;
+import net.minecraft.block.MapColor;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,8 +61,36 @@ public final class MapSimulationStore {
             if (state == null) continue;
 
             REPRESENTATIONS.put(mapId.id(), state);
+            saveMapImage(client, mapId.id(), state);
             scanned++;
         }
         return scanned;
+    }
+
+    private static void saveMapImage(MinecraftClient client, int mapId, MapState state) {
+        try {
+            Path directory = client.runDirectory.toPath().resolve("blackjack-maps");
+            Files.createDirectories(directory);
+            BufferedImage image = new BufferedImage(128, 128, BufferedImage.TYPE_INT_ARGB);
+            for (int y = 0; y < 128; y++) {
+                for (int x = 0; x < 128; x++) {
+                    int value = state.colors[y * 128 + x] & 0xFF;
+                    if (value == 0) {
+                        image.setRGB(x, y, 0x00000000);
+                        continue;
+                    }
+                    int colorIndex = value >>> 2;
+                    int brightness = value & 3;
+                    if (colorIndex >= MapColor.COLORS.length || MapColor.COLORS[colorIndex] == null) {
+                        image.setRGB(x, y, 0x00000000);
+                    } else {
+                        image.setRGB(x, y, 0xFF000000 | (MapColor.COLORS[colorIndex].getRenderColor(brightness) & 0xFFFFFF));
+                    }
+                }
+            }
+            ImageIO.write(image, "png", directory.resolve("map-" + mapId + ".png").toFile());
+        } catch (IOException ignored) {
+            // Map scanning should continue even if the local PNG cannot be written.
+        }
     }
 }
